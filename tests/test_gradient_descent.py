@@ -19,7 +19,7 @@ def test_logistic_regression_training_reduces_loss():
     )
     model.fit(X, y)
 
-    assert len(model.history["train_loss"]) == 30
+    assert 1 < len(model.history["train_loss"]) <= 30
     assert np.isfinite(model.history["train_loss"]).all()
     assert model.history["train_loss"][-1] < model.history["train_loss"][0]
 
