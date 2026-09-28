@@ -66,6 +66,54 @@ button[data-baseweb="tab"]{font-weight:700}
 .theorem-card{background:#0d1b2b;border-left:4px solid var(--cyan);padding:16px;border-radius:0 12px 12px 0}
 .small-muted{color:var(--muted);font-size:.82rem}
 hr{border-color:#183149}
+
+.question-header{
+    border:1px solid #234663;
+    border-radius:20px;
+    padding:24px 26px;
+    margin:20px 0 16px;
+    background:linear-gradient(135deg,rgba(18,45,69,.96),rgba(9,21,36,.96));
+    box-shadow:0 14px 45px rgba(0,0,0,.18);
+}
+.question-index{
+    color:var(--cyan);
+    font-size:.72rem;
+    font-weight:900;
+    letter-spacing:.14em;
+    text-transform:uppercase;
+    margin-bottom:7px;
+}
+.question-header h2{
+    margin:0;
+    font-size:1.65rem;
+    line-height:1.25;
+}
+.theory-section-label{
+    color:var(--cyan);
+    font-size:.72rem;
+    font-weight:900;
+    letter-spacing:.12em;
+    text-transform:uppercase;
+    margin:20px 0 9px;
+}
+.theory-nav{
+    border:1px solid var(--border);
+    border-radius:16px;
+    padding:16px;
+    background:rgba(10,24,39,.72);
+}
+.theory-progress{
+    height:8px;
+    border-radius:99px;
+    background:#13273b;
+    overflow:hidden;
+    margin:8px 0 4px;
+}
+.theory-progress > div{
+    height:100%;
+    border-radius:99px;
+    background:linear-gradient(90deg,var(--cyan),var(--violet));
+}
 </style>
 """, unsafe_allow_html=True)
 
@@ -252,55 +300,337 @@ if app_mode == "🏠 Executive Overview":
 # 1. 16 Tough Questions & Theory Solver
 # -------------------------------------------------------------
 if app_mode == "📘 16 Tough Questions & Theory":
-    st.title("📘 Solutions to 16 Advanced Optimization Questions")
-    st.markdown("Rigorous mathematical derivations, proofs, system designs, and empirical diagnostic protocols.")
 
-    part_filter = st.selectbox("Select Section", ["All Questions", "Part A: Questions 1 - 12 (Core Theory)", "Part B: Questions 13 - 15 (System Architecture)", "Part C: Question 16 (Deep Analysis)"])
+    question_sections = {
+        "Part A · Foundations": [1, 2, 3, 4],
+        "Part B · Optimization Mechanics": [5, 6, 7, 8, 9, 10],
+        "Part C · Convergence & Generalization": [11, 12],
+        "Part D · Production & Advanced Systems": [13, 14, 15, 16],
+    }
 
-    selected_q = st.selectbox(
-        "Choose Question to Inspect",
-        options=list(QUESTIONS_AND_SOLUTIONS.keys()),
-        format_func=lambda q: f"Q{q}: {QUESTIONS_AND_SOLUTIONS[q]['title']}"
+    question_icons = {
+        1: "📐",
+        2: "🔬",
+        3: "⚖️",
+        4: "📦",
+        5: "🚨",
+        6: "📏",
+        7: "🚀",
+        8: "🧭",
+        9: "⚙️",
+        10: "🧮",
+        11: "〰️",
+        12: "📊",
+        13: "🏭",
+        14: "🧠",
+        15: "🩺",
+        16: "🏗️",
+    }
+
+    all_questions = list(range(1, 17))
+    available_questions = [
+        number
+        for number in all_questions
+        if number in QUESTIONS_AND_SOLUTIONS
+    ]
+    missing_questions = [
+        number
+        for number in all_questions
+        if number not in QUESTIONS_AND_SOLUTIONS
+    ]
+
+    st.markdown(
+        """
+        <div class="hero-v2">
+            <div style="font-size:.72rem;color:#55d6ff;font-weight:850;
+                        letter-spacing:.16em;">
+                THEORY WORKSPACE · 16 MODULES
+            </div>
+            <h1>Gradient Descent <span style="color:#55d6ff;">Mastery</span></h1>
+            <p>
+                Rigorous derivations, optimizer mechanics, convergence analysis,
+                generalization, and production ML system design.
+            </p>
+            <span class="badge-v2">16 QUESTIONS</span>
+            <span class="badge-v2">MATHEMATICAL DERIVATIONS</span>
+            <span class="badge-v2">OPTIMIZATION</span>
+            <span class="badge-v2">DIAGNOSTICS</span>
+        </div>
+        """,
+        unsafe_allow_html=True,
     )
 
-    q_data = QUESTIONS_AND_SOLUTIONS[selected_q]
+    if missing_questions:
+        st.error(
+            "The theory source is missing: "
+            + ", ".join(f"Q{number:02d}" for number in missing_questions)
+        )
+        st.stop()
 
-    st.markdown(f"### Question {selected_q}: {q_data['title']}")
-    st.info(f"**Question Statement:**\n\n{q_data['question']}")
+    completed_count = len(available_questions)
+    progress_ratio = completed_count / len(all_questions)
 
-    st.markdown(q_data["latex_derivation"])
+    p1, p2, p3, p4 = st.columns(4)
+    p1.metric("QUESTIONS", f"{completed_count}/16")
+    p2.metric("SECTIONS", "4")
+    p3.metric("DERIVATIONS", "16")
+    p4.metric("WORKSPACE", "READY")
 
-    # Visual demonstration for Q11 (Zig-zagging)
-    if selected_q == 11 or selected_q == 2:
-        st.subheader("Interactive 2D Ill-Conditioned Quadratic Visualization")
-        col1, col2 = st.columns(2)
-        with col1:
-            eta = st.slider("Learning Rate (η)", 0.001, 0.025, 0.018, 0.001, key="q11_lr")
-        with col2:
-            n_iters = st.slider("Iterations", 5, 50, 20, 1, key="q11_iter")
+    st.markdown(
+        f"""
+        <div class="theory-progress">
+            <div style="width:{progress_ratio * 100:.0f}%;"></div>
+        </div>
+        <div class="small-muted">
+            {completed_count} of 16 theory modules available
+        </div>
+        """,
+        unsafe_allow_html=True,
+    )
 
-        # Simulate trajectory
-        traj = [[-8.0, 1.0]]
-        pos = np.array([-8.0, 1.0])
+    st.markdown(
+        '<div class="theory-section-label">01 · SECTION NAVIGATION</div>',
+        unsafe_allow_html=True,
+    )
+
+    section_names = list(question_sections.keys())
+    selected_section = st.selectbox(
+        "Select a theory section",
+        section_names,
+        key="theory_section_selector",
+    )
+
+    section_questions = [
+        number
+        for number in question_sections[selected_section]
+        if number in QUESTIONS_AND_SOLUTIONS
+    ]
+
+    st.markdown(
+        '<div class="theory-section-label">02 · QUESTION NAVIGATION</div>',
+        unsafe_allow_html=True,
+    )
+
+    selected_question = st.selectbox(
+        "Choose a question to inspect",
+        section_questions,
+        format_func=lambda number: (
+            f"Q{number:02d} · "
+            f"{QUESTIONS_AND_SOLUTIONS[number]['title']}"
+        ),
+        key="theory_question_selector",
+    )
+
+    current_index = all_questions.index(selected_question)
+    current_data = QUESTIONS_AND_SOLUTIONS[selected_question]
+    icon = question_icons.get(selected_question, "📘")
+
+    nav_left, nav_center, nav_right = st.columns([1, 2, 1])
+
+    with nav_left:
+        previous_question = (
+            all_questions[current_index - 1]
+            if current_index > 0
+            else None
+        )
+        if st.button(
+            "← Previous",
+            use_container_width=True,
+            disabled=previous_question is None,
+            key="theory_previous",
+        ):
+            st.session_state["theory_question_selector"] = previous_question
+            previous_section = next(
+                name
+                for name, numbers in question_sections.items()
+                if previous_question in numbers
+            )
+            st.session_state["theory_section_selector"] = previous_section
+            st.rerun()
+
+    with nav_center:
+        st.markdown(
+            f"""
+            <div style="
+                text-align:center;
+                padding:8px;
+                color:#8ea3b8;
+                font-weight:800;
+            ">
+                {icon} Q{selected_question:02d} / 16
+            </div>
+            """,
+            unsafe_allow_html=True,
+        )
+
+    with nav_right:
+        next_question = (
+            all_questions[current_index + 1]
+            if current_index < len(all_questions) - 1
+            else None
+        )
+        if st.button(
+            "Next →",
+            use_container_width=True,
+            disabled=next_question is None,
+            key="theory_next",
+        ):
+            st.session_state["theory_question_selector"] = next_question
+            next_section = next(
+                name
+                for name, numbers in question_sections.items()
+                if next_question in numbers
+            )
+            st.session_state["theory_section_selector"] = next_section
+            st.rerun()
+
+    st.markdown(
+        f"""
+        <div class="question-header">
+            <div class="question-index">
+                QUESTION {selected_question:02d} / 16
+            </div>
+            <h2>{icon} {current_data["title"]}</h2>
+        </div>
+        """,
+        unsafe_allow_html=True,
+    )
+
+    st.markdown(
+        '<div class="theory-section-label">03 · PROBLEM STATEMENT</div>',
+        unsafe_allow_html=True,
+    )
+    st.info(current_data["question"])
+
+    st.markdown(
+        '<div class="theory-section-label">04 · MATHEMATICAL SOLUTION</div>',
+        unsafe_allow_html=True,
+    )
+
+    with st.container(border=True):
+        st.markdown(current_data["latex_derivation"])
+
+    with st.expander("💡 Intuition & Practical Interpretation", expanded=False):
+        st.markdown(
+            """
+            Use the derivation above as the mathematical foundation.
+            The interactive labs elsewhere in this application demonstrate
+            how the corresponding optimization behavior appears numerically.
+            """
+        )
+
+    if selected_question in (2, 11):
+        st.markdown(
+            '<div class="theory-section-label">05 · INTERACTIVE CONVERGENCE LAB</div>',
+            unsafe_allow_html=True,
+        )
+
+        diagnostic_left, diagnostic_right = st.columns(2)
+
+        with diagnostic_left:
+            eta = st.slider(
+                "Learning Rate (η)",
+                0.001,
+                0.025,
+                0.018,
+                0.001,
+                key=f"theory_lr_{selected_question}",
+            )
+
+        with diagnostic_right:
+            n_iters = st.slider(
+                "Iterations",
+                5,
+                50,
+                20,
+                1,
+                key=f"theory_iter_{selected_question}",
+            )
+
+        trajectory = [[-8.0, 1.0]]
+        position = np.array([-8.0, 1.0], dtype=float)
+
         for _ in range(n_iters):
-            grad = np.array([pos[0], 100.0 * pos[1]])
-            pos = pos - eta * grad
-            traj.append(pos.tolist())
-        traj = np.array(traj)
+            gradient = np.array(
+                [position[0], 100.0 * position[1]],
+                dtype=float,
+            )
+            position -= eta * gradient
+            trajectory.append(position.tolist())
 
-        # Plot contour
-        x = np.linspace(-10, 10, 200)
-        y = np.linspace(-2, 2, 200)
-        X, Y = np.meshgrid(x, y)
-        Z = 0.5 * (X**2 + 100 * Y**2)
+        trajectory = np.asarray(trajectory)
+
+        x_grid = np.linspace(-10, 10, 200)
+        y_grid = np.linspace(-2, 2, 200)
+        x_mesh, y_mesh = np.meshgrid(x_grid, y_grid)
+        z_mesh = 0.5 * (x_mesh**2 + 100 * y_mesh**2)
 
         fig = go.Figure()
-        fig.add_trace(go.Contour(x=x, y=y, z=Z, contours_coloring='lines', line_width=1.5, colorscale='Viridis', showscale=False))
-        fig.add_trace(go.Scatter(x=traj[:, 0], y=traj[:, 1], mode='lines+markers', marker=dict(color='red', size=6), line=dict(color='red', width=2), name='GD Path'))
-        fig.update_layout(title=f"Ill-Conditioned Quadratic Optimization Path (κ=100, η={eta})", template="plotly_dark", xaxis_title="w1 (slow direction λ=1)", yaxis_title="w2 (steep direction λ=100)")
-        st.plotly_chart(fig, use_container_width=True)
 
-# -------------------------------------------------------------
+        fig.add_trace(
+            go.Contour(
+                x=x_grid,
+                y=y_grid,
+                z=z_mesh,
+                contours_coloring="lines",
+                line_width=1.2,
+                colorscale="Viridis",
+                showscale=False,
+            )
+        )
+
+        fig.add_trace(
+            go.Scatter(
+                x=trajectory[:, 0],
+                y=trajectory[:, 1],
+                mode="lines+markers",
+                marker={"size": 6},
+                name="Gradient Descent Path",
+            )
+        )
+
+        fig.update_layout(
+            title=(
+                "Ill-Conditioned Quadratic Path "
+                f"(κ=100, η={eta})"
+            ),
+            xaxis_title="w₁ · slow direction (λ=1)",
+            yaxis_title="w₂ · steep direction (λ=100)",
+        )
+
+        st.plotly_chart(
+            plotly_premium(fig),
+            use_container_width=True,
+        )
+
+    st.markdown(
+        '<div class="theory-section-label">06 · MODULE MAP</div>',
+        unsafe_allow_html=True,
+    )
+
+    module_cols = st.columns(4)
+    for column, (section_name, numbers) in zip(
+        module_cols,
+        question_sections.items(),
+    ):
+        with column:
+            section_available = [
+                number for number in numbers
+                if number in QUESTIONS_AND_SOLUTIONS
+            ]
+            st.markdown(
+                f"**{section_name}**  \n"
+                f"{len(section_available)} modules"
+            )
+            for number in section_available:
+                marker = "●" if number == selected_question else "○"
+                st.caption(
+                    f"{marker} Q{number:02d} · "
+                    f"{QUESTIONS_AND_SOLUTIONS[number]['title']}"
+                )
+
+    st.markdown("---")
+
 # 2. Formula-Based Missing Data Analyzer
 # -------------------------------------------------------------
 elif app_mode == "🔍 Formula-Based Missingness Analyzer":
