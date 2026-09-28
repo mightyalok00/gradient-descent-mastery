@@ -1,31 +1,30 @@
-# Package initialization for Gradient Descent ML Mastery Framework
-"""
-Gradient Descent ML Framework
-=============================
-A comprehensive suite for Gradient Descent optimization, formulaic missing data analysis,
-automated data profiling, model benchmarking, and diagnostics.
-"""
+"""Public API for the Gradient Descent ML Framework."""
 
-from .data_loader import load_and_preprocess_data, build_feature_pipeline
-from .missing_analysis import MissingDataFormulaAnalyzer
-from .gradient_descent import (
-    LinearRegressionGD,
-    LogisticRegressionGD,
-    OptimizerType,
-    LRScheduler
-)
-from .profiling import ComprehensiveDataProfiler
+from .config import DataConfig
+from .data_loader import build_feature_pipeline, load_and_preprocess_data, load_raw_datasets
 from .evaluation import (
+    ConvergenceDiagnosisSystem,
     evaluate_classification,
     evaluate_regression,
-    ConvergenceDiagnosisSystem,
-    run_ablation_study
+    run_ablation_study,
 )
+from .features import engineer_features
+from .gradient_descent import LinearRegressionGD, LogisticRegressionGD, LRScheduler, OptimizerType
+from .missing_analysis import MissingDataFormulaAnalyzer
+from .profiling import ComprehensiveDataProfiler
 from .questions_solutions import QUESTIONS_AND_SOLUTIONS
+from .validation import validate_binary_target, validate_finite_numeric, validate_schema, validate_train_test
 
 __all__ = [
+    "DataConfig",
+    "load_raw_datasets",
     "load_and_preprocess_data",
     "build_feature_pipeline",
+    "engineer_features",
+    "validate_schema",
+    "validate_finite_numeric",
+    "validate_binary_target",
+    "validate_train_test",
     "MissingDataFormulaAnalyzer",
     "LinearRegressionGD",
     "LogisticRegressionGD",
@@ -36,5 +35,5 @@ __all__ = [
     "evaluate_regression",
     "ConvergenceDiagnosisSystem",
     "run_ablation_study",
-    "QUESTIONS_AND_SOLUTIONS"
+    "QUESTIONS_AND_SOLUTIONS",
 ]
