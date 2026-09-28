@@ -19,8 +19,32 @@ from sklearn.preprocessing import StandardScaler, RobustScaler
 DEFAULT_PATHS = {
     "train": r"D:\gradient_descent\train.csv",
     "test": r"D:\gradient_descent\test.csv",
-    "sample_submission": r"D:\gradient_descent\sample_submission.csv"
+    "sample_submission": r"D:\gradient_descent\sample_submission.csv",
 }
+
+PROJECT_ROOT = os.path.abspath(os.path.join(os.path.dirname(__file__), os.pardir))
+
+
+def _resolve_default_path(kind: str) -> str:
+    """Resolve a dataset path across local Windows and cloud deployments."""
+    environment_key = {
+        "train": "GD_TRAIN_PATH",
+        "test": "GD_TEST_PATH",
+        "sample_submission": "GD_SAMPLE_SUBMISSION_PATH",
+    }[kind]
+
+    candidates = [
+        os.getenv(environment_key),
+        os.path.join(PROJECT_ROOT, "data", f"{kind}.csv"),
+        os.path.join(PROJECT_ROOT, f"{kind}.csv"),
+        DEFAULT_PATHS[kind],
+    ]
+
+    for candidate in candidates:
+        if candidate and os.path.isfile(candidate):
+            return candidate
+
+    return candidates[0] or DEFAULT_PATHS[kind]
 
 
 def load_raw_datasets(
@@ -31,9 +55,9 @@ def load_raw_datasets(
     """
     Loads raw CSV files from disk.
     """
-    t_path = train_path or DEFAULT_PATHS["train"]
-    te_path = test_path or DEFAULT_PATHS["test"]
-    s_path = sample_sub_path or DEFAULT_PATHS["sample_submission"]
+    t_path = train_path or _resolve_default_path("train")
+    te_path = test_path or _resolve_default_path("test")
+    s_path = sample_sub_path or _resolve_default_path("sample_submission")
 
     datasets = {}
     if os.path.exists(t_path):
