@@ -82,7 +82,18 @@ def build_feature_pipeline(
         if np.isnan(y_train).any():
             raise ValueError(f"Target column '{target_col}' contains missing/non-numeric values.")
 
-    X_tr_feat = engineer_features(df_tr)
+    timestamp_min = None
+    timestamp_max = None
+    if "timestamp" in df_tr.columns:
+        train_timestamp = pd.to_numeric(df_tr["timestamp"], errors="coerce")
+        timestamp_min = train_timestamp.min()
+        timestamp_max = train_timestamp.max()
+
+    X_tr_feat = engineer_features(
+        df_tr,
+        timestamp_min=timestamp_min,
+        timestamp_max=timestamp_max,
+    )
     feature_names = list(X_tr_feat.columns)
 
     medians = X_tr_feat.median()
@@ -93,7 +104,11 @@ def build_feature_pipeline(
 
     X_test_scaled = None
     if df_te is not None:
-        X_te_feat = engineer_features(df_te)
+        X_te_feat = engineer_features(
+            df_te,
+            timestamp_min=timestamp_min,
+            timestamp_max=timestamp_max,
+        )
         for column in feature_names:
             if column not in X_te_feat.columns:
                 X_te_feat[column] = medians[column]
