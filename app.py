@@ -1,166 +1,206 @@
 """
-Gradient Descent Mastery & Machine Learning Pipeline Dashboard
-==============================================================
-Interactive Streamlit Application featuring:
-- Solutions & LaTeX Derivations for all 16 Tough Questions
-- Formula-Based Missing Rows and Columns Analyzer
-- Automated Data Profiler & Exploratory Data Analysis
-- Interactive 2D Gradient Descent Optimization Lab
-- Dataset Model Training, Telemetry & Automated Convergence Diagnostics
-- Test Set Prediction & Submission Generator
+Gradient Descent Mastery — Streamlit Application
+=================================================
+Production-oriented interactive dashboard for:
+- 16 theory modules with LaTeX derivations
+- Formula-based missingness analysis
+- Automated EDA/profile
+- Interactive 2D gradient-descent laboratory
+- From-scratch logistic-regression optimization
+- Convergence diagnosis and optimizer benchmarking
+- Test prediction + submission generation
+
+Dataset resolution is delegated to src.data_loader.py, which supports:
+1) environment variables,
+2) repository data/ files,
+3) repository-root CSVs,
+4) the original local Windows paths.
 """
 
-import streamlit as st
+from __future__ import annotations
+
+import io
+import os
+import time
+from typing import Any
+
 import numpy as np
 import pandas as pd
 import plotly.express as px
 import plotly.graph_objects as go
-import os
-import time
+import streamlit as st
 
+from src.data_loader import build_feature_pipeline, load_and_preprocess_data
+from src.evaluation import ConvergenceDiagnosisSystem, evaluate_classification
+from src.gradient_descent import LogisticRegressionGD, LRScheduler, OptimizerType
 from src.missing_analysis import MissingDataFormulaAnalyzer
-from src.gradient_descent import (
-    LogisticRegressionGD,
-    LinearRegressionGD,
-    OptimizerType,
-    LRScheduler
-)
-from src.data_loader import load_raw_datasets, build_feature_pipeline, load_and_preprocess_data
 from src.profiling import ComprehensiveDataProfiler
-from src.evaluation import evaluate_classification, ConvergenceDiagnosisSystem, run_ablation_study
 from src.questions_solutions import QUESTIONS_AND_SOLUTIONS
 
+
+# ---------------------------------------------------------------------
 # Page configuration
+# ---------------------------------------------------------------------
+
 st.set_page_config(
-    page_title="Gradient Descent Optimization & ML Framework",
+    page_title="Gradient Descent Mastery",
     page_icon="⚡",
     layout="wide",
-    initial_sidebar_state="expanded"
+    initial_sidebar_state="expanded",
 )
 
-# Custom CSS for rich aesthetics
-st.markdown("""
-<style>
-:root{--cyan:#55d6ff;--violet:#9b8cff;--bg:#060b14;--panel:#0b1626;--border:#1d3853;--muted:#8ea3b8;--good:#34d399;--warn:#fbbf24;--bad:#fb7185}
-.stApp{background:radial-gradient(circle at 10% -5%,rgba(85,214,255,.13),transparent 25%),radial-gradient(circle at 92% 2%,rgba(155,140,255,.13),transparent 27%),linear-gradient(180deg,#060b14,#08111e 55%,#060b14);color:#e8f1fb}
-.block-container{max-width:1520px;padding:1.1rem 2rem 2.5rem}
-[data-testid="stSidebar"]{background:linear-gradient(180deg,#050c16,#091522);border-right:1px solid #17324b}
-[data-testid="stMetric"]{background:linear-gradient(145deg,rgba(16,37,59,.92),rgba(7,20,34,.94));border:1px solid var(--border);border-radius:15px;padding:15px;box-shadow:0 10px 35px rgba(0,0,0,.16)}
-[data-testid="stMetricLabel"]{color:var(--muted)}
-[data-testid="stMetricValue"]{font-weight:800}
-.hero-v2{position:relative;overflow:hidden;border:1px solid #234663;border-radius:24px;padding:32px;margin:0 0 20px;background:linear-gradient(135deg,rgba(18,45,69,.96),rgba(9,21,36,.96));box-shadow:0 24px 80px rgba(0,0,0,.28)}
-.hero-v2:after{content:"";position:absolute;width:280px;height:280px;right:-90px;top:-110px;border-radius:50%;background:radial-gradient(circle,rgba(85,214,255,.18),transparent 65%);pointer-events:none}
-.hero-v2 h1{margin:0;font-size:2.7rem;letter-spacing:-.055em}.hero-v2 p{color:#9bb0c5;margin:8px 0 0;font-size:1.02rem}
-.badge-v2{display:inline-block;padding:6px 11px;margin:14px 5px 0 0;border-radius:999px;background:rgba(85,214,255,.09);color:var(--cyan);border:1px solid rgba(85,214,255,.22);font-size:.73rem;font-weight:800;letter-spacing:.05em}
-.card-v2{border:1px solid var(--border);border-radius:16px;padding:17px;background:linear-gradient(145deg,rgba(13,29,46,.90),rgba(7,18,31,.90));min-height:110px;box-shadow:0 12px 40px rgba(0,0,0,.12)}
-.card-v2 .num{font-size:1.5rem;font-weight:850;color:var(--cyan)}.card-v2 .lbl{font-size:.77rem;color:var(--muted);margin-top:5px;text-transform:uppercase;letter-spacing:.06em}
-.section-v2{font-size:.74rem;font-weight:850;letter-spacing:.12em;color:var(--cyan);text-transform:uppercase;margin:24px 0 9px}
-.status-card{border:1px solid var(--border);border-radius:16px;padding:18px;background:rgba(10,24,39,.86)}
-.status-dot{display:inline-block;width:9px;height:9px;border-radius:50%;background:var(--good);box-shadow:0 0 14px rgba(52,211,153,.7);margin-right:7px}
-.score-ring{font-size:2.1rem;font-weight:900;color:var(--cyan)}
-.stButton>button{border-radius:11px;font-weight:750;border:1px solid #244762}
-.stButton>button:hover{border-color:var(--cyan);box-shadow:0 0 20px rgba(85,214,255,.10)}
-div[data-testid="stExpander"]{border:1px solid var(--border);border-radius:13px;background:rgba(8,20,33,.55)}
-div[data-baseweb="tab-list"]{gap:8px}
-button[data-baseweb="tab"]{font-weight:700}
-.theorem-card{background:#0d1b2b;border-left:4px solid var(--cyan);padding:16px;border-radius:0 12px 12px 0}
-.small-muted{color:var(--muted);font-size:.82rem}
-hr{border-color:#183149}
 
-.question-header{
-    border:1px solid #234663;
-    border-radius:20px;
-    padding:24px 26px;
-    margin:20px 0 16px;
-    background:linear-gradient(135deg,rgba(18,45,69,.96),rgba(9,21,36,.96));
-    box-shadow:0 14px 45px rgba(0,0,0,.18);
+# ---------------------------------------------------------------------
+# Visual system
+# ---------------------------------------------------------------------
+
+st.markdown(
+    """
+<style>
+:root {
+    --bg: #07111d;
+    --panel: #0c1b2b;
+    --panel2: #10263b;
+    --border: #1f405b;
+    --cyan: #55d6ff;
+    --violet: #9d8cff;
+    --text: #e8f2fb;
+    --muted: #91a7bb;
+    --good: #35d39b;
+    --warn: #f7c948;
 }
-.question-index{
-    color:var(--cyan);
-    font-size:.72rem;
-    font-weight:900;
-    letter-spacing:.14em;
-    text-transform:uppercase;
-    margin-bottom:7px;
+.stApp {
+    background:
+        radial-gradient(circle at 10% -5%, rgba(85,214,255,.14), transparent 26%),
+        radial-gradient(circle at 95% 0%, rgba(157,140,255,.13), transparent 28%),
+        linear-gradient(180deg, #07111d 0%, #081421 55%, #07111d 100%);
 }
-.question-header h2{
-    margin:0;
-    font-size:1.65rem;
-    line-height:1.25;
+.block-container { max-width: 1540px; padding: 1.2rem 2rem 3rem; }
+[data-testid="stSidebar"] {
+    background: linear-gradient(180deg, #050c15, #091624);
+    border-right: 1px solid #17344c;
 }
-.theory-section-label{
-    color:var(--cyan);
-    font-size:.72rem;
-    font-weight:900;
-    letter-spacing:.12em;
-    text-transform:uppercase;
-    margin:20px 0 9px;
+[data-testid="stMetric"] {
+    background: linear-gradient(145deg, rgba(16,38,59,.95), rgba(7,20,34,.95));
+    border: 1px solid var(--border);
+    border-radius: 15px;
+    padding: 14px;
 }
-.theory-nav{
-    border:1px solid var(--border);
-    border-radius:16px;
-    padding:16px;
-    background:rgba(10,24,39,.72);
+[data-testid="stMetricLabel"] { color: var(--muted); }
+[data-testid="stMetricValue"] { font-weight: 850; }
+.stButton > button {
+    border-radius: 11px;
+    font-weight: 750;
+    border: 1px solid #244862;
 }
-.theory-progress{
-    height:8px;
-    border-radius:99px;
-    background:#13273b;
-    overflow:hidden;
-    margin:8px 0 4px;
+.stButton > button:hover {
+    border-color: var(--cyan);
+    box-shadow: 0 0 18px rgba(85,214,255,.12);
 }
-.theory-progress > div{
-    height:100%;
-    border-radius:99px;
-    background:linear-gradient(90deg,var(--cyan),var(--violet));
+div[data-testid="stExpander"] {
+    border: 1px solid var(--border);
+    border-radius: 14px;
+    background: rgba(8,20,33,.58);
+}
+.hero {
+    border: 1px solid #234963;
+    border-radius: 24px;
+    padding: 30px;
+    margin-bottom: 20px;
+    background: linear-gradient(135deg, rgba(18,45,69,.97), rgba(8,20,34,.97));
+    box-shadow: 0 24px 80px rgba(0,0,0,.25);
+}
+.hero h1 { margin: 0; font-size: 2.7rem; letter-spacing: -.05em; }
+.hero p { color: #9eb2c5; margin: 8px 0 0; }
+.badge {
+    display: inline-block;
+    margin: 14px 6px 0 0;
+    padding: 6px 11px;
+    border-radius: 999px;
+    color: var(--cyan);
+    background: rgba(85,214,255,.08);
+    border: 1px solid rgba(85,214,255,.22);
+    font-size: .72rem;
+    font-weight: 850;
+    letter-spacing: .06em;
+}
+.section-label {
+    margin: 24px 0 9px;
+    color: var(--cyan);
+    font-size: .72rem;
+    font-weight: 900;
+    letter-spacing: .13em;
+    text-transform: uppercase;
+}
+.card {
+    border: 1px solid var(--border);
+    border-radius: 16px;
+    padding: 18px;
+    background: linear-gradient(145deg, rgba(13,31,49,.92), rgba(7,18,31,.92));
+}
+.muted { color: var(--muted); font-size: .85rem; }
+.theory-header {
+    border: 1px solid #234963;
+    border-radius: 19px;
+    padding: 23px 26px;
+    margin: 18px 0;
+    background: linear-gradient(135deg, rgba(18,45,69,.96), rgba(9,21,36,.96));
+}
+.theory-index {
+    color: var(--cyan);
+    font-size: .72rem;
+    font-weight: 900;
+    letter-spacing: .14em;
+    text-transform: uppercase;
+    margin-bottom: 7px;
+}
+.progress {
+    height: 8px;
+    border-radius: 99px;
+    background: #142a3f;
+    overflow: hidden;
+    margin: 9px 0 5px;
+}
+.progress > div {
+    height: 100%;
+    background: linear-gradient(90deg, var(--cyan), var(--violet));
 }
 </style>
-""", unsafe_allow_html=True)
+""",
+    unsafe_allow_html=True,
+)
 
 
-@st.cache_data
-def get_dataset():
-    """Load the repository dataset when available; return None on cloud deployments without CSVs."""
+# ---------------------------------------------------------------------
+# Generic helpers
+# ---------------------------------------------------------------------
+
+@st.cache_data(show_spinner=False)
+def load_repository_dataset() -> dict[str, Any] | None:
+    """Load the repository dataset; return None if deployment has no CSVs."""
     try:
-        return load_and_preprocess_data(val_size=0.2, random_state=42)
-    except FileNotFoundError:
+        return load_and_preprocess_data(val_size=0.20, random_state=42)
+    except (FileNotFoundError, OSError, ValueError):
         return None
 
-def plotly_premium(fig: go.Figure, title: str | None = None) -> go.Figure:
-    """Apply one consistent visual language to every chart."""
-    fig.update_layout(
-        template="plotly_dark",
-        paper_bgcolor="rgba(0,0,0,0)",
-        plot_bgcolor="rgba(0,0,0,0)",
-        font=dict(family="Inter, Segoe UI, sans-serif", color="#dbeafe"),
-        title=dict(text=title, font=dict(size=18, color="#e8f1fb")),
-        margin=dict(l=18, r=18, t=58, b=18),
-        hovermode="x unified",
-        legend=dict(orientation="h", yanchor="bottom", y=1.02, xanchor="right", x=1),
-    )
-    fig.update_xaxes(showgrid=True, gridcolor="rgba(148,163,184,.10)", zeroline=False)
-    fig.update_yaxes(showgrid=True, gridcolor="rgba(148,163,184,.10)", zeroline=False)
-    return fig
+
+def clear_dataset_cache() -> None:
+    load_repository_dataset.clear()
 
 
-def store_experiment(record: dict) -> None:
-    history = st.session_state.setdefault("experiment_history", [])
-    history.append(record)
-    st.session_state["experiment_history"] = history[-12:]
-
-
-def get_uploaded_or_local_data():
+def get_data() -> tuple[pd.DataFrame | None, pd.DataFrame | None, pd.DataFrame | None, str]:
+    """Return train, test, sample-submission and source label."""
     train_file = st.session_state.get("uploaded_train")
     test_file = st.session_state.get("uploaded_test")
     sample_file = st.session_state.get("uploaded_sample")
 
     if train_file is not None:
-        train_df = pd.read_csv(train_file)
-        test_df = pd.read_csv(test_file) if test_file is not None else None
-        sample_df = pd.read_csv(sample_file) if sample_file is not None else None
-        return train_df, test_df, sample_df, "Uploaded CSV"
+        train = pd.read_csv(train_file)
+        test = pd.read_csv(test_file) if test_file is not None else None
+        sample = pd.read_csv(sample_file) if sample_file is not None else None
+        return train, test, sample, "Uploaded CSV"
 
-    data = get_dataset()
+    data = load_repository_dataset()
     if data is None:
         return None, None, None, "No dataset available"
 
@@ -168,11 +208,139 @@ def get_uploaded_or_local_data():
         data["raw_train"],
         data["raw_test"],
         data["raw_sample_submission"],
-        "Repository dataset",
+        "Repository data/",
     )
 
 
-# Sidebar Navigation
+def require_dataset() -> tuple[pd.DataFrame, pd.DataFrame | None, pd.DataFrame | None, str]:
+    train, test, sample, source = get_data()
+    if train is None:
+        st.warning(
+            "No dataset is available. Add the CSV files under data/ or upload "
+            "train/test CSVs from the sidebar."
+        )
+        st.stop()
+    return train, test, sample, source
+
+
+def premium_chart(fig: go.Figure, title: str | None = None) -> go.Figure:
+    fig.update_layout(
+        template="plotly_dark",
+        paper_bgcolor="rgba(0,0,0,0)",
+        plot_bgcolor="rgba(0,0,0,0)",
+        font=dict(family="Inter, Segoe UI, sans-serif", color="#dbeafe"),
+        title=dict(text=title, font=dict(size=18, color="#e8f1fb")),
+        margin=dict(l=18, r=18, t=58, b=18),
+        legend=dict(orientation="h", yanchor="bottom", y=1.02, xanchor="right", x=1),
+    )
+    fig.update_xaxes(showgrid=True, gridcolor="rgba(148,163,184,.10)", zeroline=False)
+    fig.update_yaxes(showgrid=True, gridcolor="rgba(148,163,184,.10)", zeroline=False)
+    return fig
+
+
+def hero(title: str, subtitle: str, badges: list[str]) -> None:
+    badge_html = "".join(f'<span class="badge">{b}</span>' for b in badges)
+    st.markdown(
+        f"""
+        <div class="hero">
+            <div style="font-size:.72rem;color:#55d6ff;font-weight:850;letter-spacing:.16em;">
+                OPTIMIZATION INTELLIGENCE PLATFORM
+            </div>
+            <h1>{title}</h1>
+            <p>{subtitle}</p>
+            {badge_html}
+        </div>
+        """,
+        unsafe_allow_html=True,
+    )
+
+
+def safe_numeric_sample(df: pd.DataFrame, n: int = 12000) -> pd.DataFrame:
+    if len(df) <= n:
+        return df.copy()
+    return df.sample(n=n, random_state=42)
+
+
+def build_training_arrays(
+    train_df: pd.DataFrame,
+    test_df: pd.DataFrame | None,
+    max_rows: int,
+) -> dict[str, Any]:
+    """Build the same feature pipeline used by the project, with an optional row cap."""
+    working = train_df
+    if len(working) > max_rows:
+        if "label" in working.columns:
+            positive = working[working["label"] == 1]
+            negative = working[working["label"] == 0]
+            pos_n = min(len(positive), max(1, int(max_rows * len(positive) / len(working))))
+            neg_n = min(len(negative), max_rows - pos_n)
+            working = pd.concat(
+                [
+                    positive.sample(pos_n, random_state=42),
+                    negative.sample(neg_n, random_state=42),
+                ]
+            ).sample(frac=1.0, random_state=42)
+        else:
+            working = working.sample(max_rows, random_state=42)
+
+    pipeline = build_feature_pipeline(working, test_df)
+    from sklearn.model_selection import train_test_split
+
+    X_train, X_val, y_train, y_val = train_test_split(
+        pipeline["X_train"],
+        pipeline["y_train"],
+        test_size=0.20,
+        random_state=42,
+        stratify=pipeline["y_train"],
+    )
+    return {
+        **pipeline,
+        "X_train_split": X_train,
+        "X_val": X_val,
+        "y_train_split": y_train,
+        "y_val": y_val,
+        "rows_used": len(working),
+    }
+
+
+def train_gd_model(
+    X_train: np.ndarray,
+    y_train: np.ndarray,
+    X_val: np.ndarray,
+    y_val: np.ndarray,
+    optimizer: OptimizerType,
+    learning_rate: float,
+    epochs: int,
+    batch_size: int,
+    l2_lambda: float,
+    clip_norm: float | None,
+    scheduler: str,
+) -> LogisticRegressionGD:
+    model = LogisticRegressionGD(
+        learning_rate=learning_rate,
+        max_epochs=epochs,
+        batch_size=batch_size,
+        optimizer=optimizer,
+        l2_lambda=l2_lambda,
+        gradient_clip_norm=clip_norm,
+        lr_scheduler_mode=scheduler,
+        early_stopping_patience=10,
+        random_state=42,
+    )
+    model.fit(X_train, y_train, X_val=X_val, y_val=y_val)
+    return model
+
+
+def store_experiment(record: dict[str, Any]) -> None:
+    history = st.session_state.setdefault("experiment_history", [])
+    history.append(record)
+    st.session_state["experiment_history"] = history[-12:]
+
+
+# ---------------------------------------------------------------------
+# Sidebar
+# ---------------------------------------------------------------------
+
 st.sidebar.markdown(
     '<div style="font-size:1.25rem;font-weight:850;">⚡ GRADIENT DESCENT</div>'
     '<div style="color:#55d6ff;font-weight:750;letter-spacing:.08em;">MASTERY LAB</div>',
@@ -180,11 +348,12 @@ st.sidebar.markdown(
 )
 st.sidebar.caption("Optimization • Data Quality • Diagnostics")
 
-with st.sidebar.expander("Dataset source", expanded=False):
-    st.caption("Use local repository paths or upload CSVs for cloud deployment.")
+with st.sidebar.expander("Dataset source", expanded=True):
+    st.caption("Repository data/ is used automatically. Uploads override it for this session.")
     train_upload = st.file_uploader("Train CSV", type="csv", key="train_csv")
     test_upload = st.file_uploader("Test CSV", type="csv", key="test_csv")
     sample_upload = st.file_uploader("Sample submission CSV", type="csv", key="sample_csv")
+
     if st.button("Use uploaded files", use_container_width=True):
         if train_upload is None:
             st.error("Train CSV is required.")
@@ -192,12 +361,13 @@ with st.sidebar.expander("Dataset source", expanded=False):
             st.session_state["uploaded_train"] = train_upload
             st.session_state["uploaded_test"] = test_upload
             st.session_state["uploaded_sample"] = sample_upload
-            st.cache_data.clear()
+            clear_dataset_cache()
             st.rerun()
+
     if st.button("Clear uploads", use_container_width=True):
         for key in ("uploaded_train", "uploaded_test", "uploaded_sample"):
             st.session_state.pop(key, None)
-        st.cache_data.clear()
+        clear_dataset_cache()
         st.rerun()
 
 app_mode = st.sidebar.radio(
@@ -210,934 +380,650 @@ app_mode = st.sidebar.radio(
         "🧪 Interactive Gradient Descent Lab",
         "⚡ Model Training & Diagnostics",
         "🏆 Optimizer Benchmark",
-        "🚀 Test Predictions & Submissions"
-    ]
+        "🚀 Test Predictions & Submissions",
+    ],
 )
 
-# -------------------------------------------------------------
-# 0. Executive Overview
-# -------------------------------------------------------------
-if app_mode == "🏠 Executive Overview":
-    raw_train, raw_test, raw_sample, data_source = get_uploaded_or_local_data()
+st.sidebar.markdown("---")
+st.sidebar.caption("Gradient Descent Mastery • reproducible NumPy optimization")
 
-    st.markdown(
-        """
-        <div class="hero-v2">
-            <div style="font-size:.72rem;color:#55d6ff;font-weight:850;letter-spacing:.16em;">
-                OPTIMIZATION INTELLIGENCE PLATFORM
-            </div>
-            <h1>Gradient Descent <span style="color:#55d6ff;">Mastery</span></h1>
-            <p>Experiment, visualize and diagnose gradient-based learning from raw data to validated submission.</p>
-            <span class="badge-v2">9 OPTIMIZERS</span>
-            <span class="badge-v2">16 THEORY MODULES</span>
-            <span class="badge-v2">LIVE TELEMETRY</span>
-            <span class="badge-v2">FORMULA ENGINE</span>
-        </div>
-        """,
-        unsafe_allow_html=True,
+
+# ---------------------------------------------------------------------
+# Executive Overview
+# ---------------------------------------------------------------------
+
+if app_mode == "🏠 Executive Overview":
+    train, test, sample, source = get_data()
+
+    hero(
+        "Gradient Descent <span style='color:#55d6ff;'>Mastery</span>",
+        "Experiment, visualize and diagnose gradient-based learning from raw data to validated submission.",
+        ["9 OPTIMIZERS", "16 THEORY MODULES", "LIVE TELEMETRY", "FORMULA ENGINE"],
     )
 
-    if raw_train is None:
-        st.warning("No dataset is available. Upload train/test CSVs from the sidebar.")
+    if train is None:
+        st.warning("Dataset not found. Your repository should contain data/train.csv, data/test.csv and data/sample_submission.csv.")
+        st.info("The theory workspace remains available without a dataset.")
     else:
-        profile = ComprehensiveDataProfiler(raw_train, "Gradient Descent Dataset").profile["overview"]
-        positive_rate = raw_train["label"].mean() * 100 if "label" in raw_train else float("nan")
-        missing_rate = profile["total_missing_percentage"]
-        health = max(0.0, 100.0 - min(100.0, missing_rate * 4.0))
+        profile = ComprehensiveDataProfiler(train, "Gradient Descent Dataset").profile["overview"]
+        positive_rate = float(train["label"].mean() * 100) if "label" in train else float("nan")
+        health = max(0.0, 100.0 - min(100.0, profile["total_missing_percentage"] * 4))
 
-        c1,c2,c3,c4,c5,c6=st.columns(6)
+        c1, c2, c3, c4, c5, c6 = st.columns(6)
         c1.metric("OBSERVATIONS", f"{profile['num_rows']:,}")
         c2.metric("FEATURES", profile["num_cols"])
-        c3.metric("MISSING", f"{missing_rate:.2f}%")
+        c3.metric("MISSING", f"{profile['total_missing_percentage']:.2f}%")
         c4.metric("DUPLICATES", f"{profile['duplicate_rows']:,}")
         c5.metric("POSITIVE CLASS", f"{positive_rate:.2f}%")
         c6.metric("DATA HEALTH", f"{health:.1f}/100")
 
-        st.markdown('<div class="section-v2">SYSTEM STATUS</div>', unsafe_allow_html=True)
-        s1,s2,s3,s4=st.columns(4)
-        for col,label,detail in [
-            (s1,"DATA ENGINE","Schema + profiling ready"),
-            (s2,"OPTIMIZATION","9 gradient methods"),
-            (s3,"DIAGNOSTICS","Convergence engine ready"),
-            (s4,"EXPORT","Submission pipeline ready"),
-        ]:
-            col.markdown(
-                f'<div class="status-card"><span class="status-dot"></span><b>{label}</b>'
-                f'<div class="small-muted" style="margin-top:7px;">{detail}</div></div>',
-                unsafe_allow_html=True,
-            )
-
-        st.markdown('<div class="section-v2">OPTIMIZATION COMMAND CENTER</div>', unsafe_allow_html=True)
-        left,right=st.columns([1.45,1])
+        st.markdown('<div class="section-label">DATASET SNAPSHOT</div>', unsafe_allow_html=True)
+        left, right = st.columns([1.35, 1])
 
         with left:
-            if "label" in raw_train:
-                counts=raw_train["label"].value_counts().rename_axis("label").reset_index(name="count")
-                fig=px.bar(counts,x="label",y="count",text_auto=True,title="Target distribution")
-                st.plotly_chart(plotly_premium(fig),use_container_width=True)
+            st.dataframe(train.head(12), use_container_width=True, hide_index=True)
 
         with right:
-            experiment_history=st.session_state.get("experiment_history",[])
-            if experiment_history:
-                exp_df=pd.DataFrame(experiment_history)
-                fig=px.line(exp_df,x="run",y="roc_auc",markers=True,title="Experiment ROC-AUC history")
-                st.plotly_chart(plotly_premium(fig),use_container_width=True)
-            else:
-                st.markdown(
-                    '<div class="card-v2" style="min-height:250px;">'
-                    '<div class="score-ring">READY</div>'
-                    '<h3>Experiment telemetry</h3>'
-                    '<div class="small-muted">Train a model from Model Training to populate live experiment history.</div>'
-                    '</div>',
-                    unsafe_allow_html=True,
-                )
+            if "label" in train:
+                counts = train["label"].value_counts().rename_axis("label").reset_index(name="count")
+                fig = px.bar(counts, x="label", y="count", text_auto=True, title="Target distribution")
+                st.plotly_chart(premium_chart(fig), use_container_width=True)
 
-        st.markdown('<div class="section-v2">FEATURE EXPLORER</div>', unsafe_allow_html=True)
-        numeric=raw_train.select_dtypes(include=[np.number]).columns.tolist()
+        st.markdown('<div class="section-label">NUMERIC FEATURE EXPLORER</div>', unsafe_allow_html=True)
+        numeric = train.select_dtypes(include=np.number).columns.tolist()
         if numeric:
-            feature=st.selectbox("Select feature",numeric,key="overview_feature")
-            sample=raw_train.sample(min(12000,len(raw_train)),random_state=42)
-            fig=px.histogram(sample,x=feature,color="label" if "label" in sample else None,
-                             marginal="box",title=f"{feature} distribution")
-            st.plotly_chart(plotly_premium(fig),use_container_width=True)
+            feature = st.selectbox("Feature", numeric)
+            sample_df = safe_numeric_sample(train)
+            fig = px.histogram(
+                sample_df,
+                x=feature,
+                color="label" if "label" in sample_df else None,
+                marginal="box",
+                title=f"{feature} distribution",
+            )
+            st.plotly_chart(premium_chart(fig), use_container_width=True)
 
-        st.caption(f"Data source: {data_source}")
+        st.caption(f"Data source: {source}")
 
-# -------------------------------------------------------------
-# 1. 16 Tough Questions & Theory Solver
-# -------------------------------------------------------------
-if app_mode == "📘 16 Tough Questions & Theory":
 
-    question_sections = {
+# ---------------------------------------------------------------------
+# Theory workspace
+# ---------------------------------------------------------------------
+
+elif app_mode == "📘 16 Tough Questions & Theory":
+    sections = {
         "Part A · Foundations": [1, 2, 3, 4],
         "Part B · Optimization Mechanics": [5, 6, 7, 8, 9, 10],
         "Part C · Convergence & Generalization": [11, 12],
         "Part D · Production & Advanced Systems": [13, 14, 15, 16],
     }
+    icons = dict(zip(range(1, 17), ["📐","🔬","⚖️","📦","🚨","📏","🚀","🧭","⚙️","🧮","〰️","📊","🏭","🧠","🩺","🏗️"]))
 
-    question_icons = {
-        1: "📐",
-        2: "🔬",
-        3: "⚖️",
-        4: "📦",
-        5: "🚨",
-        6: "📏",
-        7: "🚀",
-        8: "🧭",
-        9: "⚙️",
-        10: "🧮",
-        11: "〰️",
-        12: "📊",
-        13: "🏭",
-        14: "🧠",
-        15: "🩺",
-        16: "🏗️",
-    }
-
-    all_questions = list(range(1, 17))
-    available_questions = [
-        number
-        for number in all_questions
-        if number in QUESTIONS_AND_SOLUTIONS
-    ]
-    missing_questions = [
-        number
-        for number in all_questions
-        if number not in QUESTIONS_AND_SOLUTIONS
-    ]
-
-    st.markdown(
-        """
-        <div class="hero-v2">
-            <div style="font-size:.72rem;color:#55d6ff;font-weight:850;
-                        letter-spacing:.16em;">
-                THEORY WORKSPACE · 16 MODULES
-            </div>
-            <h1>Gradient Descent <span style="color:#55d6ff;">Mastery</span></h1>
-            <p>
-                Rigorous derivations, optimizer mechanics, convergence analysis,
-                generalization, and production ML system design.
-            </p>
-            <span class="badge-v2">16 QUESTIONS</span>
-            <span class="badge-v2">MATHEMATICAL DERIVATIONS</span>
-            <span class="badge-v2">OPTIMIZATION</span>
-            <span class="badge-v2">DIAGNOSTICS</span>
-        </div>
-        """,
-        unsafe_allow_html=True,
+    missing = [q for q in range(1, 17) if q not in QUESTIONS_AND_SOLUTIONS]
+    hero(
+        "Theory <span style='color:#55d6ff;'>Workspace</span>",
+        "Sixteen rigorous modules covering gradient descent mathematics, optimizer mechanics, convergence and production ML.",
+        ["16 QUESTIONS", "LATEX DERIVATIONS", "OPTIMIZATION", "DIAGNOSTICS"],
     )
 
-    if missing_questions:
-        st.error(
-            "The theory source is missing: "
-            + ", ".join(f"Q{number:02d}" for number in missing_questions)
-        )
+    if missing:
+        st.error("Missing theory modules: " + ", ".join(f"Q{x:02d}" for x in missing))
         st.stop()
 
-    completed_count = len(available_questions)
-    progress_ratio = completed_count / len(all_questions)
+    all_q = list(range(1, 17))
+    section = st.selectbox("Theory section", list(sections), key="theory_section")
+    valid_q = sections[section]
 
-    p1, p2, p3, p4 = st.columns(4)
-    p1.metric("QUESTIONS", f"{completed_count}/16")
-    p2.metric("SECTIONS", "4")
-    p3.metric("DERIVATIONS", "16")
-    p4.metric("WORKSPACE", "READY")
+    if st.session_state.get("theory_question") not in valid_q:
+        st.session_state["theory_question"] = valid_q[0]
+
+    q_number = st.selectbox(
+        "Question",
+        valid_q,
+        format_func=lambda q: f"Q{q:02d} · {QUESTIONS_AND_SOLUTIONS[q]['title']}",
+        key="theory_question",
+    )
+
+    idx = all_q.index(q_number)
+    q = QUESTIONS_AND_SOLUTIONS[q_number]
 
     st.markdown(
         f"""
-        <div class="theory-progress">
-            <div style="width:{progress_ratio * 100:.0f}%;"></div>
-        </div>
-        <div class="small-muted">
-            {completed_count} of 16 theory modules available
+        <div class="theory-header">
+            <div class="theory-index">{icons[q_number]} Q{q_number:02d} / 16</div>
+            <h2 style="margin:0;">{q['title']}</h2>
         </div>
         """,
         unsafe_allow_html=True,
     )
 
-    st.markdown(
-        '<div class="theory-section-label">01 · SECTION NAVIGATION</div>',
-        unsafe_allow_html=True,
-    )
+    st.progress((q_number) / 16, text=f"Module {q_number} of 16")
 
-    section_names = list(question_sections.keys())
-    selected_section = st.selectbox(
-        "Select a theory section",
-        section_names,
-        key="theory_section_selector",
-    )
-
-    section_questions = [
-        number
-        for number in question_sections[selected_section]
-        if number in QUESTIONS_AND_SOLUTIONS
-    ]
-
-    # Keep the question widget valid when the user changes sections.
-    if st.session_state.get("theory_question_selector") not in section_questions:
-        st.session_state["theory_question_selector"] = section_questions[0]
-
-    st.markdown(
-        '<div class="theory-section-label">02 · QUESTION NAVIGATION</div>',
-        unsafe_allow_html=True,
-    )
-
-    selected_question = st.selectbox(
-        "Choose a question to inspect",
-        section_questions,
-        format_func=lambda number: (
-            f"Q{number:02d} · "
-            f"{QUESTIONS_AND_SOLUTIONS[number]['title']}"
-        ),
-        key="theory_question_selector",
-    )
-
-    current_index = all_questions.index(selected_question)
-    current_data = QUESTIONS_AND_SOLUTIONS[selected_question]
-    icon = question_icons.get(selected_question, "📘")
-
-    nav_left, nav_center, nav_right = st.columns([1, 2, 1])
-
-    with nav_left:
-        previous_question = (
-            all_questions[current_index - 1]
-            if current_index > 0
-            else None
-        )
-        if st.button(
-            "← Previous",
-            use_container_width=True,
-            disabled=previous_question is None,
-            key="theory_previous",
-        ):
-            st.session_state["theory_question_selector"] = previous_question
-            previous_section = next(
-                name
-                for name, numbers in question_sections.items()
-                if previous_question in numbers
-            )
-            st.session_state["theory_section_selector"] = previous_section
+    prev_q = all_q[idx - 1] if idx > 0 else None
+    next_q = all_q[idx + 1] if idx < 15 else None
+    a, b, c = st.columns([1, 2, 1])
+    with a:
+        if st.button("← Previous", disabled=prev_q is None, use_container_width=True):
+            prev_section = next(name for name, nums in sections.items() if prev_q in nums)
+            st.session_state["theory_section"] = prev_section
+            st.session_state["theory_question"] = prev_q
             st.rerun()
-
-    with nav_center:
+    with b:
         st.markdown(
-            f"""
-            <div style="
-                text-align:center;
-                padding:8px;
-                color:#8ea3b8;
-                font-weight:800;
-            ">
-                {icon} Q{selected_question:02d} / 16
-            </div>
-            """,
+            f"<div style='text-align:center;color:#91a7bb;padding:8px;font-weight:800;'>Q{q_number:02d} · {q['title']}</div>",
             unsafe_allow_html=True,
         )
-
-    with nav_right:
-        next_question = (
-            all_questions[current_index + 1]
-            if current_index < len(all_questions) - 1
-            else None
-        )
-        if st.button(
-            "Next →",
-            use_container_width=True,
-            disabled=next_question is None,
-            key="theory_next",
-        ):
-            st.session_state["theory_question_selector"] = next_question
-            next_section = next(
-                name
-                for name, numbers in question_sections.items()
-                if next_question in numbers
-            )
-            st.session_state["theory_section_selector"] = next_section
+    with c:
+        if st.button("Next →", disabled=next_q is None, use_container_width=True):
+            next_section = next(name for name, nums in sections.items() if next_q in nums)
+            st.session_state["theory_section"] = next_section
+            st.session_state["theory_question"] = next_q
             st.rerun()
 
-    st.markdown(
-        f"""
-        <div class="question-header">
-            <div class="question-index">
-                QUESTION {selected_question:02d} / 16
-            </div>
-            <h2>{icon} {current_data['title']}</h2>
-        </div>
-        """,
-        unsafe_allow_html=True,
-    )
+    st.markdown('<div class="section-label">Problem statement</div>', unsafe_allow_html=True)
+    st.info(q["question"])
 
-    st.markdown(
-        '<div class="theory-section-label">03 · PROBLEM STATEMENT</div>',
-        unsafe_allow_html=True,
-    )
-    st.info(current_data["question"])
+    st.markdown('<div class="section-label">Mathematical solution</div>', unsafe_allow_html=True)
+    st.markdown(q["latex_derivation"])
 
-    st.markdown(
-        '<div class="theory-section-label">04 · MATHEMATICAL SOLUTION</div>',
-        unsafe_allow_html=True,
-    )
-
-    with st.container(border=True):
-        st.markdown(current_data["latex_derivation"])
-
-    with st.expander("💡 Intuition & Practical Interpretation", expanded=False):
-        st.markdown(
-            """
-            Use the derivation above as the mathematical foundation.
-            The interactive labs elsewhere in this application demonstrate
-            how the corresponding optimization behavior appears numerically.
-            """
-        )
-
-    if selected_question in (2, 11):
-        st.markdown(
-            '<div class="theory-section-label">05 · INTERACTIVE CONVERGENCE LAB</div>',
-            unsafe_allow_html=True,
-        )
-
-        diagnostic_left, diagnostic_right = st.columns(2)
-
-        with diagnostic_left:
-            eta = st.slider(
-                "Learning Rate (η)",
-                0.001,
-                0.025,
-                0.018,
-                0.001,
-                key=f"theory_lr_{selected_question}",
-            )
-
-        with diagnostic_right:
-            n_iters = st.slider(
-                "Iterations",
-                5,
-                50,
-                20,
-                1,
-                key=f"theory_iter_{selected_question}",
-            )
-
-        trajectory = [[-8.0, 1.0]]
-        position = np.array([-8.0, 1.0], dtype=float)
-
-        for _ in range(n_iters):
-            gradient = np.array(
-                [position[0], 100.0 * position[1]],
-                dtype=float,
-            )
-            position -= eta * gradient
-            trajectory.append(position.tolist())
-
-        trajectory = np.asarray(trajectory)
-
-        x_grid = np.linspace(-10, 10, 200)
-        y_grid = np.linspace(-2, 2, 200)
-        x_mesh, y_mesh = np.meshgrid(x_grid, y_grid)
-        z_mesh = 0.5 * (x_mesh**2 + 100 * y_mesh**2)
-
+    st.markdown('<div class="section-label">Interactive convergence intuition</div>', unsafe_allow_html=True)
+    if q_number in (2, 11):
+        lr = st.slider("Learning rate", 0.001, 0.05, 0.018, 0.001, key=f"lr_{q_number}")
+        kappa = st.slider("Condition number", 1, 200, 100, 1, key=f"kappa_{q_number}")
+        theta = np.array([2.5, 2.0], dtype=float)
+        path = [theta.copy()]
+        for _ in range(80):
+            grad = np.array([theta[0], kappa * theta[1]])
+            theta = theta - lr * grad
+            path.append(theta.copy())
+        path = np.asarray(path)
         fig = go.Figure()
-
-        fig.add_trace(
-            go.Contour(
-                x=x_grid,
-                y=y_grid,
-                z=z_mesh,
-                contours_coloring="lines",
-                line_width=1.2,
-                colorscale="Viridis",
-                showscale=False,
-            )
-        )
-
-        fig.add_trace(
-            go.Scatter(
-                x=trajectory[:, 0],
-                y=trajectory[:, 1],
-                mode="lines+markers",
-                marker={"size": 6},
-                name="Gradient Descent Path",
-            )
-        )
-
+        fig.add_trace(go.Scatter(x=path[:, 0], y=path[:, 1], mode="lines+markers", name="GD path"))
+        fig.add_trace(go.Scatter(x=[0], y=[0], mode="markers", marker=dict(size=12), name="Minimum"))
         fig.update_layout(
-            title=(
-                "Ill-Conditioned Quadratic Path "
-                f"(κ=100, η={eta})"
-            ),
-            xaxis_title="w₁ · slow direction (λ=1)",
-            yaxis_title="w₂ · steep direction (λ=100)",
+            title="2D quadratic optimization trajectory",
+            xaxis_title="x",
+            yaxis_title="y",
+            template="plotly_dark",
+            paper_bgcolor="rgba(0,0,0,0)",
+            plot_bgcolor="rgba(0,0,0,0)",
         )
+        st.plotly_chart(fig, use_container_width=True)
+    else:
+        st.caption("Use the derivation above as the primary mathematical reference for this module.")
 
-        st.plotly_chart(
-            plotly_premium(fig),
-            use_container_width=True,
-        )
 
-    st.markdown(
-        '<div class="theory-section-label">06 · MODULE MAP</div>',
-        unsafe_allow_html=True,
-    )
+# ---------------------------------------------------------------------
+# Missingness analyzer
+# ---------------------------------------------------------------------
 
-    module_cols = st.columns(4)
-    for column, (section_name, numbers) in zip(
-        module_cols,
-        question_sections.items(),
-    ):
-        with column:
-            section_available = [
-                number for number in numbers
-                if number in QUESTIONS_AND_SOLUTIONS
-            ]
-            st.markdown(
-                f"**{section_name}**  \n"
-                f"{len(section_available)} modules"
-            )
-            for number in section_available:
-                marker = "●" if number == selected_question else "○"
-                st.caption(
-                    f"{marker} Q{number:02d} · "
-                    f"{QUESTIONS_AND_SOLUTIONS[number]['title']}"
-                )
-
-    st.markdown("---")
-
-# 2. Formula-Based Missing Data Analyzer
-# -------------------------------------------------------------
 elif app_mode == "🔍 Formula-Based Missingness Analyzer":
-    st.title("🔍 Missing Rows and Columns Analysis by Mathematical Formula")
-    st.markdown(r"""
-    This module uses linear algebra formulations ($M \in \{0,1\}^{N \times d}$, $\rho_i = (M \mathbf{1})_i / d$, $\gamma_j = (\mathbf{1}^T M)_j / N$) 
-    to detect missing rows and columns with exact mathematical precision.
-    """)
+    train, _, _, source = require_dataset()
+    hero(
+        "Formula-Based <span style='color:#55d6ff;'>Missingness</span>",
+        "Compute row, column and global missingness directly from the binary indicator matrix.",
+        ["LINEAR ALGEBRA", "ROW FORMULAS", "COLUMN FORMULAS", "THRESHOLDS"],
+    )
 
-    raw_train, raw_test, raw_sample, data_source = get_uploaded_or_local_data()
+    analyzer = MissingDataFormulaAnalyzer(train)
+    report = analyzer.get_summary_report()
 
-    if raw_train is None:
-        st.warning(
-            "No dataset is available in this deployment. "
-            "Upload the Train CSV from the sidebar to use this workspace."
-        )
-        st.stop()
+    c1, c2, c3, c4 = st.columns(4)
+    c1.metric("MISSING CELLS", f"{report['global_missing_cells']:,}")
+    c2.metric("GLOBAL RATE", f"{report['global_missing_percentage']:.4f}%")
+    c3.metric("INCOMPLETE ROWS", f"{report['incomplete_rows_count']:,}")
+    c4.metric("INCOMPLETE COLS", report["incomplete_cols_count"])
 
-    tab1, tab2, tab3 = st.tabs(["📐 Mathematical Formulations", "📊 Real Dataset Analysis", "🧪 Synthetic MCAR Injection Benchmark"])
+    st.markdown('<div class="section-label">Core formulas</div>', unsafe_allow_html=True)
+    formulas = analyzer.get_latex_formulations()
+    f1, f2, f3 = st.columns(3)
+    with f1:
+        st.latex(formulas["row_missing_count"])
+        st.latex(formulas["col_missing_count"])
+    with f2:
+        st.latex(formulas["row_missing_rate"])
+        st.latex(formulas["col_missing_rate"])
+    with f3:
+        st.latex(formulas["global_missing_rate"])
 
-    analyzer = MissingDataFormulaAnalyzer(raw_train)
-    summary = analyzer.get_summary_report()
+    row_tau, col_tau = st.columns(2)
+    with row_tau:
+        row_threshold = st.slider("Row missingness threshold", 0.0, 1.0, 0.5, 0.05)
+    with col_tau:
+        col_threshold = st.slider("Column missingness threshold", 0.0, 1.0, 0.5, 0.05)
 
-    with tab1:
-        st.subheader("Mathematical Formulations")
-        formulas = analyzer.get_latex_formulations()
-        for k, form in formulas.items():
-            st.markdown(f"**{k.replace('_', ' ').title()}:**")
-            st.latex(form)
+    filtered = analyzer.filter_by_threshold(row_threshold, col_threshold)
 
-    with tab2:
-        st.subheader("Real Dataset Missingness Inspection (`train.csv`)")
-        c1, c2, c3, c4 = st.columns(4)
-        c1.metric("Total Rows (N)", f"{summary['matrix_dimensions']['N_rows']:,}")
-        c2.metric("Total Columns (d)", summary["matrix_dimensions"]["d_cols"])
-        c3.metric("Missing Cells (Total)", f"{summary['global_missing_cells']}")
-        c4.metric("Global Missingness (Ω)", f"{summary['global_missing_percentage']:.2f}%")
+    c1, c2 = st.columns(2)
+    c1.metric("Rows above threshold", filtered["rows_above_threshold_count"])
+    c2.metric("Columns above threshold", filtered["cols_above_threshold_count"])
 
-        st.markdown("#### Column-by-Column Missingness Breakdown")
-        st.dataframe(summary["column_breakdown"], use_container_width=True)
+    st.dataframe(report["column_breakdown"], use_container_width=True, hide_index=True)
 
-        st.markdown("#### Threshold Row/Column Extractor")
-        col_t1, col_t2 = st.columns(2)
-        with col_t1:
-            row_tau = st.slider("Row Missing Threshold (τ_row)", 0.0, 1.0, 0.5, 0.05)
-        with col_t2:
-            col_tau = st.slider("Column Missing Threshold (τ_col)", 0.0, 1.0, 0.5, 0.05)
+    st.caption(f"Data source: {source}")
 
-        filtered = analyzer.filter_by_threshold(row_tau=row_tau, col_tau=col_tau)
-        st.write(f"Rows with $\\rho_i \\ge {row_tau}$: **{filtered['rows_above_threshold_count']}**")
-        st.write(f"Columns with $\\gamma_j \\ge {col_tau}$: **{filtered['cols_above_threshold_count']}** ({filtered['cols_above_threshold_names']})")
 
-    with tab3:
-        st.subheader("Synthetic Injection Testing (Validating Formula Engine)")
-        st.markdown("Inject controlled Missing Completely at Random (MCAR) nulls into a sample to verify exact formulaic recovery.")
+# ---------------------------------------------------------------------
+# Automated EDA
+# ---------------------------------------------------------------------
 
-        inject_rate = st.slider("Injection Missing Rate (p)", 0.01, 0.20, 0.05, 0.01)
-        sample_df = raw_train.head(1000).copy()
-
-        df_injected, ground_truth = MissingDataFormulaAnalyzer.create_synthetic_missing_benchmark(
-            sample_df, mcar_rate=inject_rate, random_seed=42
-        )
-        injected_analyzer = MissingDataFormulaAnalyzer(df_injected)
-        injected_summary = injected_analyzer.get_summary_report()
-
-        st.success(f"Injected Target Rate: **{inject_rate*100:.1f}%** | Formula Computed Missing Rate: **{injected_summary['global_missing_percentage']:.2f}%**")
-        st.write(f"Incomplete Rows Detected by Formula: **{injected_summary['incomplete_rows_count']} / 1,000**")
-        st.dataframe(injected_summary["column_breakdown"], use_container_width=True)
-
-# -------------------------------------------------------------
-# 3. Automated Data Profiler (EDA)
-# -------------------------------------------------------------
 elif app_mode == "📊 Automated Data Profiler (EDA)":
-    st.title("📊 Automated Data Profiling & Exploratory Data Analysis")
-    st.markdown("Statistical distributions, feature correlation matrices, skewness, kurtosis, and HTML report export.")
+    train, _, _, source = require_dataset()
+    hero(
+        "Automated Data <span style='color:#55d6ff;'>Profiler</span>",
+        "Schema, distributions, descriptive statistics, missingness and correlations.",
+        ["EDA", "STATISTICS", "CORRELATION", "DATA QUALITY"],
+    )
 
-    df_train, _, _, data_source = get_uploaded_or_local_data()
-
-    if df_train is None:
-        st.warning(
-            "No training dataset is available. "
-            "Upload the Train CSV from the sidebar."
-        )
-        st.stop()
-
-    profiler = ComprehensiveDataProfiler(df_train, dataset_name="Transaction Fraud Dataset")
+    profiler = ComprehensiveDataProfiler(train, "Gradient Descent Dataset")
     profile = profiler.profile
-
     overview = profile["overview"]
-    c1, c2, c3, c4 = st.columns(4)
-    c1.metric("Observations", f"{overview['num_rows']:,}")
-    c2.metric("Features", overview["num_cols"])
-    c3.metric("Numeric Features", overview["num_numeric_cols"])
-    c4.metric("Memory Footprint", f"{overview['memory_usage_mb']:.1f} MB")
 
-    st.markdown("### Interactive Correlation Heatmap")
-    num_cols = df_train.select_dtypes(include=[np.number]).columns
-    corr_df = df_train[num_cols].corr()
+    c1, c2, c3, c4, c5 = st.columns(5)
+    c1.metric("ROWS", f"{overview['num_rows']:,}")
+    c2.metric("COLUMNS", overview["num_cols"])
+    c3.metric("NUMERIC", overview["num_numeric_cols"])
+    c4.metric("CATEGORICAL", overview["num_categorical_cols"])
+    c5.metric("MEMORY", f"{overview['memory_usage_mb']:.2f} MB")
 
-    fig_corr = px.imshow(
-        corr_df,
-        text_auto=".2f",
-        color_continuous_scale="RdBu_r",
-        aspect="auto",
-        title="Feature Correlation Matrix (Pearson)"
-    )
-    fig_corr.update_layout(template="plotly_dark")
-    st.plotly_chart(plotly_premium(fig_corr), use_container_width=True)
-
-    st.markdown("### Feature Distribution Visualizer")
-    selected_feature = st.selectbox("Select Feature to Plot", options=num_cols)
-    fig_dist = px.histogram(
-        df_train.sample(min(10000, len(df_train))),
-        x=selected_feature,
-        color="label" if "label" in df_train.columns else None,
-        marginal="box",
-        title=f"Distribution of {selected_feature} by Class Label",
-        template="plotly_dark",
-        opacity=0.75
-    )
-    st.plotly_chart(plotly_premium(fig_dist), use_container_width=True)
-
-    if st.button("Generate & Download HTML Profiling Report"):
-        html_path = profiler.generate_html_report("dataset_profiling_report.html")
-        with open(html_path, "r", encoding="utf-8") as f:
-            html_bytes = f.read()
-        st.download_button(
-            label="📥 Download HTML Profiling Report",
-            data=html_bytes,
-            file_name="dataset_profiling_report.html",
-            mime="text/html"
+    variable_rows = []
+    for name, info in profile["variables"].items():
+        variable_rows.append(
+            {
+                "Feature": name,
+                "Dtype": info["dtype"],
+                "Unique": info["unique_values"],
+                "Missing": info["missing_count"],
+                "Missing %": round(info["missing_percentage"], 4),
+                "Mean": info.get("mean"),
+                "Std": info.get("std"),
+                "Min": info.get("min"),
+                "Median": info.get("median"),
+                "Max": info.get("max"),
+            }
         )
+    st.dataframe(pd.DataFrame(variable_rows), use_container_width=True, hide_index=True)
 
-# -------------------------------------------------------------
-# 4. Interactive Gradient Descent Lab
-# -------------------------------------------------------------
+    numeric = train.select_dtypes(include=np.number).columns.tolist()
+    if len(numeric) >= 2:
+        corr = train[numeric].corr()
+        fig = px.imshow(corr, text_auto=".2f", aspect="auto", title="Numeric correlation matrix")
+        st.plotly_chart(premium_chart(fig), use_container_width=True)
+
+    feature = st.selectbox("Distribution feature", numeric if numeric else train.columns.tolist())
+    plot_df = safe_numeric_sample(train)
+    if pd.api.types.is_numeric_dtype(plot_df[feature]):
+        fig = px.histogram(plot_df, x=feature, marginal="box", title=f"{feature} distribution")
+    else:
+        counts = plot_df[feature].value_counts().head(20).reset_index()
+        counts.columns = [feature, "count"]
+        fig = px.bar(counts, x=feature, y="count", title=f"Top {feature} values")
+    st.plotly_chart(premium_chart(fig), use_container_width=True)
+
+    st.caption(f"Data source: {source}")
+
+
+# ---------------------------------------------------------------------
+# 2D Gradient Descent Lab
+# ---------------------------------------------------------------------
+
 elif app_mode == "🧪 Interactive Gradient Descent Lab":
-    st.title("🧪 Interactive 2D Gradient Descent Optimization Lab")
-    st.markdown("Live visual optimization testbed comparing convergence paths of all Gradient Descent variants.")
+    hero(
+        "Interactive <span style='color:#55d6ff;'>Gradient Descent Lab</span>",
+        "Explore learning-rate stability, curvature and optimizer trajectories on a 2D quadratic.",
+        ["2D OBJECTIVE", "TRAJECTORY", "LR CONTROL", "CURVATURE"],
+    )
 
-    c1, c2, c3 = st.columns(3)
-    with c1:
-        loss_surface = st.selectbox("Loss Surface", ["Ill-Conditioned Quadratic (Canyon)", "Rosenbrock (Banana Function)", "Beale's Function"])
-    with c2:
-        optimizer_choice = st.selectbox("Optimizer", [
-            "Batch Gradient Descent", "Momentum", "NAG", "AdaGrad", "RMSProp", "Adam"
-        ])
-    with c3:
-        learning_rate = st.slider("Learning Rate (η)", 0.0001, 0.5, 0.01, 0.0005)
+    col1, col2, col3 = st.columns(3)
+    with col1:
+        learning_rate = st.slider("Learning rate", 0.001, 0.10, 0.018, 0.001)
+    with col2:
+        curvature = st.slider("Curvature ratio", 1, 200, 100)
+    with col3:
+        steps = st.slider("Iterations", 20, 300, 100, 10)
 
-    c4, c5, c6 = st.columns(3)
-    with c4:
-        momentum_val = st.slider("Momentum / Beta1", 0.0, 0.99, 0.9, 0.01)
-    with c5:
-        max_steps = st.slider("Max Iterations", 10, 200, 50, 5)
-    with c6:
-        start_x = st.slider("Start X", -5.0, 5.0, -3.5, 0.5)
-
-    # Define loss function
-    def compute_loss_and_grad(x, y, surface):
-        if surface == "Ill-Conditioned Quadratic (Canyon)":
-            loss = 0.5 * (x**2 + 50 * y**2)
-            gx = x
-            gy = 50 * y
-        elif surface == "Rosenbrock (Banana Function)":
-            loss = (1 - x)**2 + 100 * (y - x**2)**2
-            gx = -2 * (1 - x) - 400 * x * (y - x**2)
-            gy = 200 * (y - x**2)
-        else:
-            loss = (1.5 - x + x*y)**2 + (2.25 - x + x*y**2)**2 + (2.625 - x + x*y**3)**2
-            gx = 2*(1.5 - x + x*y)*(-1 + y) + 2*(2.25 - x + x*y**2)*(-1 + y**2) + 2*(2.625 - x + x*y**3)*(-1 + y**3)
-            gy = 2*(1.5 - x + x*y)*x + 2*(2.25 - x + x*y**2)*(2*x*y) + 2*(2.625 - x + x*y**3)*(3*x*y**2)
-        return loss, np.array([gx, gy])
-
-    # Run optimization
-    pos = np.array([start_x, 2.5])
-    traj = [pos.copy()]
-    losses = []
-
-    v = np.zeros(2)
+    optimizer = st.selectbox(
+        "Optimizer",
+        [x.value for x in OptimizerType],
+        index=0,
+    )
+    theta = np.array([2.5, 2.0], dtype=float)
+    velocity = np.zeros(2)
     s = np.zeros(2)
+    m = np.zeros(2)
+    v = np.zeros(2)
+    beta1, beta2 = 0.9, 0.999
+    path = [theta.copy()]
 
-    for step in range(1, max_steps + 1):
-        loss, g = compute_loss_and_grad(pos[0], pos[1], loss_surface)
-        losses.append(loss)
+    for t in range(1, steps + 1):
+        grad = np.array([theta[0], curvature * theta[1]])
 
-        if optimizer_choice == "Batch Gradient Descent":
-            pos = pos - learning_rate * g
-        elif optimizer_choice == "Momentum":
-            v = momentum_val * v + learning_rate * g
-            pos = pos - v
-        elif optimizer_choice == "NAG":
-            pos_ahead = pos - momentum_val * v
-            _, g_ahead = compute_loss_and_grad(pos_ahead[0], pos_ahead[1], loss_surface)
-            v = momentum_val * v + learning_rate * g_ahead
-            pos = pos - v
-        elif optimizer_choice == "AdaGrad":
-            s += g**2
-            pos = pos - (learning_rate / (np.sqrt(s) + 1e-8)) * g
-        elif optimizer_choice == "RMSProp":
-            s = 0.99 * s + 0.01 * (g**2)
-            pos = pos - (learning_rate / (np.sqrt(s) + 1e-8)) * g
-        elif optimizer_choice == "Adam":
-            v = momentum_val * v + (1 - momentum_val) * g
-            s = 0.999 * s + (1 - 0.999) * (g**2)
-            v_hat = v / (1 - momentum_val**step)
-            s_hat = s / (1 - 0.999**step)
-            pos = pos - (learning_rate / (np.sqrt(s_hat) + 1e-8)) * v_hat
+        if optimizer == OptimizerType.MOMENTUM.value:
+            velocity = 0.9 * velocity + learning_rate * grad
+            theta -= velocity
+        elif optimizer == OptimizerType.NAG.value:
+            look = theta - 0.9 * velocity
+            grad = np.array([look[0], curvature * look[1]])
+            velocity = 0.9 * velocity + learning_rate * grad
+            theta -= velocity
+        elif optimizer == OptimizerType.ADAGRAD.value:
+            s += grad ** 2
+            theta -= learning_rate * grad / (np.sqrt(s) + 1e-8)
+        elif optimizer == OptimizerType.RMSPROP.value:
+            s = 0.99 * s + 0.01 * grad ** 2
+            theta -= learning_rate * grad / (np.sqrt(s) + 1e-8)
+        elif optimizer in (OptimizerType.ADAM.value, OptimizerType.ADAMW.value):
+            m = beta1 * m + (1 - beta1) * grad
+            v = beta2 * v + (1 - beta2) * grad ** 2
+            mh = m / (1 - beta1 ** t)
+            vh = v / (1 - beta2 ** t)
+            theta -= learning_rate * mh / (np.sqrt(vh) + 1e-8)
+            if optimizer == OptimizerType.ADAMW.value:
+                theta *= 1 - learning_rate * 0.01
+        else:
+            theta -= learning_rate * grad
 
-        traj.append(pos.copy())
+        path.append(theta.copy())
 
-    traj = np.array(traj)
+    path = np.asarray(path)
+    objective = 0.5 * (path[:, 0] ** 2 + curvature * path[:, 1] ** 2)
 
-    # 2D Contour Plot
-    x_grid = np.linspace(-6, 6, 150)
-    y_grid = np.linspace(-4, 4, 150)
-    X, Y = np.meshgrid(x_grid, y_grid)
-    Z = np.zeros_like(X)
-    for i in range(len(x_grid)):
-        for j in range(len(y_grid)):
-            Z[j, i], _ = compute_loss_and_grad(X[j, i], Y[j, i], loss_surface)
+    left, right = st.columns([1.35, 1])
+    with left:
+        fig = go.Figure()
+        fig.add_trace(go.Scatter(x=path[:, 0], y=path[:, 1], mode="lines+markers", name="trajectory"))
+        fig.add_trace(go.Scatter(x=[0], y=[0], mode="markers", marker=dict(size=12), name="minimum"))
+        fig.update_layout(
+            title="Optimization trajectory",
+            xaxis_title="x",
+            yaxis_title="y",
+            template="plotly_dark",
+            paper_bgcolor="rgba(0,0,0,0)",
+            plot_bgcolor="rgba(0,0,0,0)",
+        )
+        st.plotly_chart(fig, use_container_width=True)
+    with right:
+        loss_fig = px.line(
+            x=np.arange(len(objective)),
+            y=objective,
+            labels={"x": "Iteration", "y": "Objective"},
+            title="Objective decay",
+        )
+        st.plotly_chart(premium_chart(loss_fig), use_container_width=True)
 
-    col_fig1, col_fig2 = st.columns(2)
-    with col_fig1:
-        fig_opt = go.Figure()
-        fig_opt.add_trace(go.Contour(x=x_grid, y=y_grid, z=Z, contours_coloring='lines', colorscale='Viridis', showscale=False))
-        fig_opt.add_trace(go.Scatter(x=traj[:, 0], y=traj[:, 1], mode='lines+markers', marker=dict(color='orange', size=6), line=dict(color='orange', width=2), name=optimizer_choice))
-        fig_opt.update_layout(title=f"Optimization Trajectory ({optimizer_choice})", template="plotly_dark", xaxis_title="w1", yaxis_title="w2")
-        st.plotly_chart(plotly_premium(fig_opt), use_container_width=True)
+    st.metric("Final objective", f"{objective[-1]:.6g}")
 
-    with col_fig2:
-        fig_loss = px.line(x=list(range(len(losses))), y=losses, log_y=True, title="Loss vs Iteration (Log Scale)", labels={"x": "Iteration", "y": "Loss"}, template="plotly_dark")
-        st.plotly_chart(plotly_premium(fig_loss), use_container_width=True)
 
-# -------------------------------------------------------------
-# 5. Model Training & Diagnostics
-# -------------------------------------------------------------
+# ---------------------------------------------------------------------
+# Model training and diagnostics
+# ---------------------------------------------------------------------
+
 elif app_mode == "⚡ Model Training & Diagnostics":
-    st.title("⚡ Model Training & Autonomous Convergence Diagnostics")
-    st.markdown("Train custom Gradient Descent models on the Transaction dataset and trigger automated health diagnosis.")
-
-    raw_train, raw_test, raw_sample, data_source = get_uploaded_or_local_data()
-
-    if raw_train is None:
-        st.warning(
-            "No training dataset is available. "
-            "Upload the Train CSV from the sidebar."
-        )
-        st.stop()
-
-    prepared = build_feature_pipeline(raw_train, raw_test)
-    from sklearn.model_selection import train_test_split
-    X_tr, X_va, y_tr, y_va = train_test_split(
-        prepared["X_train"],
-        prepared["y_train"],
-        test_size=0.2,
-        random_state=42,
-        stratify=prepared["y_train"],
+    train, test, _, source = require_dataset()
+    hero(
+        "Model Training <span style='color:#55d6ff;'>& Diagnostics</span>",
+        "Train the project's from-scratch logistic regression with configurable gradient optimizers.",
+        ["FROM SCRATCH", "TELEMETRY", "CONVERGENCE", "IMBALANCE-AWARE METRICS"],
     )
 
-    c1, c2, c3, c4 = st.columns(4)
-    with c1:
-        opt_choice = st.selectbox("Optimizer Type", [
-            OptimizerType.ADAM,
-            OptimizerType.ADAMW,
-            OptimizerType.MOMENTUM,
-            OptimizerType.NAG,
-            OptimizerType.RMSPROP,
-            OptimizerType.MINI_BATCH_GD,
-            OptimizerType.BATCH_GD
-        ])
-    with c2:
-        lr = st.number_input("Learning Rate", value=0.01, format="%.4f")
-    with c3:
-        epochs = st.slider("Max Epochs", 10, 100, 30, 5)
-    with c4:
-        batch_sz = st.select_slider("Batch Size", options=[16, 32, 64, 128, 256, 512, 1024], value=64)
+    with st.expander("Training configuration", expanded=True):
+        a, b, c, d = st.columns(4)
+        optimizer_label = a.selectbox("Optimizer", [x.value for x in OptimizerType], index=6)
+        lr = b.number_input("Learning rate", min_value=1e-5, max_value=1.0, value=0.01, format="%.5f")
+        epochs = c.slider("Epochs", 5, 100, 30)
+        batch_size = d.selectbox("Batch size", [32, 64, 128, 256, 512, 2048], index=1)
 
-    if st.button("🚀 Train Model via Gradient Descent"):
-        with st.spinner("Training Gradient Descent Model..."):
-            model = LogisticRegressionGD(
-                learning_rate=lr,
-                max_epochs=epochs,
-                batch_size=batch_sz,
-                optimizer=opt_choice,
-                l2_lambda=0.001
+        e, f, g = st.columns(3)
+        max_rows = e.select_slider("Maximum training rows", options=[10000, 20000, 50000, 100000, 182125], value=50000)
+        l2 = f.number_input("L2 / AdamW weight decay", min_value=0.0, max_value=1.0, value=0.0, format="%.5f")
+        scheduler = g.selectbox("LR scheduler", ["constant", "step", "exponential", "cosine", "inverse_time"])
+
+        clip = st.checkbox("Gradient clipping", value=True)
+        clip_norm = st.number_input("Clip norm", min_value=0.1, max_value=1000.0, value=5.0) if clip else None
+
+    if st.button("🚀 Train model", type="primary", use_container_width=True):
+        arrays = build_training_arrays(train, test, max_rows)
+        selected_opt = OptimizerType(optimizer_label)
+
+        start = time.perf_counter()
+        with st.spinner("Training from scratch..."):
+            model = train_gd_model(
+                arrays["X_train_split"],
+                arrays["y_train_split"],
+                arrays["X_val"],
+                arrays["y_val"],
+                selected_opt,
+                lr,
+                epochs,
+                batch_size,
+                l2,
+                clip_norm,
+                scheduler,
             )
-            model.fit(X_tr, y_tr, X_val=X_va, y_val=y_va)
+        elapsed = time.perf_counter() - start
 
-        st.success("Training completed successfully!")
+        val_proba = model.predict_proba(arrays["X_val"])
+        metrics = evaluate_classification(arrays["y_val"], val_proba)
+        diagnosis = ConvergenceDiagnosisSystem.diagnose(model.history)
 
-        # Evaluate before storing experiment telemetry.
-        y_val_proba = model.predict_proba(X_va)
-        metrics = evaluate_classification(y_va, y_val_proba)
+        st.session_state["last_model"] = model
+        st.session_state["last_arrays"] = arrays
+        st.session_state["last_metrics"] = metrics
+        st.session_state["last_source"] = source
 
-        # Persist a compact experiment record for the command center.
-        run_number = len(st.session_state.get("experiment_history", [])) + 1
-        store_experiment({
-            "run": run_number,
-            "optimizer": str(opt_choice).split(".")[-1],
-            "roc_auc": metrics["roc_auc"],
-            "pr_auc": metrics["pr_auc"],
-            "f1": metrics["f1_score"],
-            "final_loss": model.history["val_loss"][-1],
-            "epochs": len(model.history["epoch"]),
-        })
+        store_experiment(
+            {
+                "run": len(st.session_state.get("experiment_history", [])) + 1,
+                "optimizer": optimizer_label,
+                "roc_auc": metrics["roc_auc"],
+                "pr_auc": metrics["pr_auc"],
+                "f1": metrics["f1_score"],
+            }
+        )
 
-        m1, m2, m3, m4 = st.columns(4)
-        m1.metric("Validation ROC-AUC", f"{metrics['roc_auc']:.4f}")
-        m2.metric("Validation PR-AUC", f"{metrics['pr_auc']:.4f}")
-        m3.metric("Validation Accuracy", f"{metrics['accuracy']*100:.2f}%")
-        m4.metric("Brier Loss Score", f"{metrics['brier_score']:.4f}")
+        st.success(f"Training completed in {elapsed:.2f}s using {arrays['rows_used']:,} rows.")
 
-        # Training history plots
-        hist = model.history
-        fig_hist = go.Figure()
-        fig_hist.add_trace(go.Scatter(x=hist["epoch"], y=hist["train_loss"], name="Train Loss", line=dict(color="#38bdf8", width=2)))
-        fig_hist.add_trace(go.Scatter(x=hist["epoch"], y=hist["val_loss"], name="Val Loss", line=dict(color="#f43f5e", width=2)))
-        fig_hist.update_layout(title="Learning Curve (Loss Convergence)", template="plotly_dark", xaxis_title="Epoch", yaxis_title="Binary Cross-Entropy")
-        st.plotly_chart(plotly_premium(fig_hist), use_container_width=True)
-        hist_df=pd.DataFrame(hist)
-        gkey="gradient_norm" if "gradient_norm" in hist_df else ("grad_norm" if "grad_norm" in hist_df else None)
-        if gkey:
-            grad_fig=px.line(hist_df,x="epoch",y=gkey,title="Gradient norm telemetry",log_y=True)
-            st.plotly_chart(plotly_premium(grad_fig),use_container_width=True)
+        m1, m2, m3, m4, m5 = st.columns(5)
+        m1.metric("ROC-AUC", f"{metrics['roc_auc']:.4f}")
+        m2.metric("PR-AUC", f"{metrics['pr_auc']:.4f}")
+        m3.metric("F1", f"{metrics['f1_score']:.4f}")
+        m4.metric("Brier", f"{metrics['brier_score']:.4f}")
+        m5.metric("Final val loss", f"{model.history['val_loss'][-1]:.5f}")
+
+        hist = pd.DataFrame(model.history)
+        l1, l2 = st.columns(2)
+        with l1:
+            fig = px.line(hist, x="epoch", y=["train_loss", "val_loss"], markers=True, title="Loss telemetry")
+            st.plotly_chart(premium_chart(fig), use_container_width=True)
+        with l2:
+            fig = px.line(hist, x="epoch", y=["gradient_norm", "parameter_norm"], markers=True, title="Optimization telemetry")
+            st.plotly_chart(premium_chart(fig), use_container_width=True)
+
+        st.markdown('<div class="section-label">Automated diagnosis</div>', unsafe_allow_html=True)
+        st.write(f"**Status:** {diagnosis.get('status', 'UNKNOWN')}  ·  **Severity:** {diagnosis.get('severity', 'UNKNOWN')}")
+        for item in diagnosis.get("diagnoses", []):
+            st.info(item)
+
+        cm = np.asarray(metrics["confusion_matrix"])
+        cm_fig = px.imshow(cm, text_auto=True, title="Validation confusion matrix", labels=dict(x="Predicted", y="Actual"))
+        st.plotly_chart(premium_chart(cm_fig), use_container_width=True)
+
+    elif "last_model" in st.session_state:
+        st.info("A previous training run is stored in this session. Train again to replace it.")
 
 
+# ---------------------------------------------------------------------
+# Optimizer benchmark
+# ---------------------------------------------------------------------
 
-        if st.session_state.get("experiment_history"):
-            st.markdown("### Experiment history")
-            st.dataframe(
-                pd.DataFrame(st.session_state["experiment_history"]).round(5),
-                use_container_width=True,
-                hide_index=True,
-            )
-
-        # Automated Diagnostic Engine (Question 15)
-        st.subheader("Autonomous Convergence Diagnosis Report")
-        diagnostic_history = {
-            "epoch": hist.get("epoch", []),
-            "train_loss": hist.get("train_loss", []),
-            "val_loss": hist.get("val_loss", []),
-            "gradient_norm": hist.get("gradient_norm", hist.get("grad_norm", [])),
-            "parameter_norm": hist.get("parameter_norm", hist.get("param_norm", [])),
-            "learning_rate": hist.get("learning_rate", hist.get("lr", [])),
-        }
-        diag = ConvergenceDiagnosisSystem.diagnose(diagnostic_history)
-        
-        status_color = "🟢" if diag["severity"] == "OPTIMAL" else "🟡" if diag["severity"] == "WARNING" else "🔴"
-        st.markdown(f"**Status:** {status_color} `{diag['status']}` (Severity: `{diag['severity']}`)")
-        for d in diag["diagnoses"]:
-            st.write(f"- {d}")
-
-# -------------------------------------------------------------
-# 6. Optimizer Benchmark
-# -------------------------------------------------------------
 elif app_mode == "🏆 Optimizer Benchmark":
-    st.markdown(
-        """
-        <div class="hero-v2">
-            <div style="font-size:.72rem;color:#55d6ff;font-weight:850;letter-spacing:.16em;">BENCHMARK ENGINE</div>
-            <h1>Optimizer <span style="color:#55d6ff;">Arena</span></h1>
-            <p>Run the same validation protocol across gradient-based optimizers and inspect convergence behavior.</p>
-        </div>
-        """,
-        unsafe_allow_html=True,
+    train, test, _, source = require_dataset()
+    hero(
+        "Optimizer <span style='color:#55d6ff;'>Benchmark</span>",
+        "Compare multiple optimization strategies under the same train/validation pipeline.",
+        ["CONTROLLED EXPERIMENT", "ROC-AUC", "PR-AUC", "CONVERGENCE"],
     )
 
-    raw_train, raw_test, raw_sample, data_source = get_uploaded_or_local_data()
+    a, b, c = st.columns(3)
+    max_rows = a.select_slider("Rows", options=[10000, 20000, 50000], value=20000)
+    epochs = b.slider("Epochs per optimizer", 5, 50, 15)
+    batch = c.selectbox("Batch size", [32, 64, 128, 256], index=1)
 
-    if raw_train is None:
-        st.warning(
-            "No training dataset is available. "
-            "Upload the Train CSV from the sidebar."
-        )
+    selected = st.multiselect(
+        "Optimizers",
+        [x.value for x in OptimizerType],
+        default=[
+            OptimizerType.BATCH_GD.value,
+            OptimizerType.MOMENTUM.value,
+            OptimizerType.RMSPROP.value,
+            OptimizerType.ADAM.value,
+            OptimizerType.ADAMW.value,
+        ],
+    )
+
+    if st.button("🏁 Run benchmark", type="primary", use_container_width=True):
+        arrays = build_training_arrays(train, test, max_rows)
+        records = []
+
+        progress = st.progress(0, text="Starting benchmark...")
+        for i, label in enumerate(selected, start=1):
+            opt = OptimizerType(label)
+            default_lr = 0.05 if opt in (OptimizerType.MOMENTUM, OptimizerType.BATCH_GD) else 0.01
+            start = time.perf_counter()
+            model = train_gd_model(
+                arrays["X_train_split"],
+                arrays["y_train_split"],
+                arrays["X_val"],
+                arrays["y_val"],
+                opt,
+                default_lr,
+                epochs,
+                batch,
+                0.01 if opt == OptimizerType.ADAMW else 0.0,
+                5.0,
+                "constant",
+            )
+            elapsed = time.perf_counter() - start
+            metrics = evaluate_classification(arrays["y_val"], model.predict_proba(arrays["X_val"]))
+            records.append(
+                {
+                    "Optimizer": label,
+                    "ROC-AUC": metrics["roc_auc"],
+                    "PR-AUC": metrics["pr_auc"],
+                    "F1": metrics["f1_score"],
+                    "Brier": metrics["brier_score"],
+                    "Final Val Loss": model.history["val_loss"][-1],
+                    "Seconds": elapsed,
+                }
+            )
+            progress.progress(i / len(selected), text=f"Completed {label}")
+
+        result = pd.DataFrame(records)
+        st.session_state["benchmark_result"] = result
+
+    result = st.session_state.get("benchmark_result")
+    if result is not None:
+        st.dataframe(result.round(5), use_container_width=True, hide_index=True)
+        fig = px.bar(result, x="Optimizer", y=["ROC-AUC", "PR-AUC"], barmode="group", title="Validation ranking by metric")
+        st.plotly_chart(premium_chart(fig), use_container_width=True)
+        st.caption(f"Data source: {source}")
+
+
+# ---------------------------------------------------------------------
+# Predictions and submissions
+# ---------------------------------------------------------------------
+
+elif app_mode == "🚀 Test Predictions & Submissions":
+    train, test, sample, source = require_dataset()
+    hero(
+        "Test Predictions <span style='color:#55d6ff;'>& Submission</span>",
+        "Train a final model on the available training data and export test-set probabilities.",
+        ["TEST SET", "PROBABILITIES", "SUBMISSION CSV", "DOWNLOAD"],
+    )
+
+    if test is None:
+        st.error("Test CSV is required for submission generation.")
         st.stop()
 
-    prepared=build_feature_pipeline(raw_train,raw_test)
-    from sklearn.model_selection import train_test_split
-    X_tr,X_va,y_tr,y_va=train_test_split(
-        prepared["X_train"],prepared["y_train"],test_size=.2,random_state=42,stratify=prepared["y_train"]
+    if sample is None:
+        st.warning("sample_submission.csv is not available. A submission template will be generated from test IDs.")
+
+    a, b, c = st.columns(3)
+    optimizer_label = a.selectbox(
+        "Optimizer",
+        [x.value for x in OptimizerType],
+        index=6,
+        key="submission_optimizer",
+    )
+    lr = b.number_input("Learning rate", 1e-5, 1.0, 0.01, format="%.5f", key="submission_lr")
+    epochs = c.slider("Epochs", 5, 100, 30, key="submission_epochs")
+
+    max_rows = st.select_slider(
+        "Training rows",
+        options=[10000, 20000, 50000, 100000, 182125],
+        value=50000,
+        key="submission_rows",
     )
 
-    b1,b2,b3=st.columns(3)
-    bench_epochs=b1.slider("Benchmark epochs",5,60,20,5)
-    bench_batch=b2.select_slider("Batch size",[32,64,128,256,512],value=128)
-    bench_lr=b3.number_input("Benchmark learning rate",0.0001,0.5,0.01,0.005,format="%.4f")
-    selected_opts=st.multiselect(
-        "Optimizers to compare",
-        [o.value for o in OptimizerType],
-        default=[OptimizerType.ADAM.value,OptimizerType.ADAMW.value,OptimizerType.RMSPROP.value,OptimizerType.MOMENTUM.value],
-    )
+    if st.button("Generate test predictions", type="primary", use_container_width=True):
+        arrays = build_training_arrays(train, test, max_rows)
+        model = train_gd_model(
+            arrays["X_train_split"],
+            arrays["y_train_split"],
+            arrays["X_val"],
+            arrays["y_val"],
+            OptimizerType(optimizer_label),
+            lr,
+            epochs,
+            64,
+            0.01 if optimizer_label == OptimizerType.ADAMW.value else 0.0,
+            5.0,
+            "constant",
+        )
 
-    if st.button("🏁 Run benchmark",type="primary",use_container_width=True):
-        if not selected_opts:
-            st.warning("Select at least one optimizer before running the benchmark.")
+        if arrays["X_test"] is None:
+            st.error("The feature pipeline could not construct test features.")
             st.stop()
 
-        records=[]
-        progress=st.progress(0.0)
-        for i,name in enumerate(selected_opts,1):
-            opt=next(o for o in OptimizerType if o.value==name)
-            model=LogisticRegressionGD(
-                learning_rate=bench_lr,max_epochs=bench_epochs,batch_size=bench_batch,
-                optimizer=opt,l2_lambda=.01 if name==OptimizerType.ADAMW.value else .001
-            )
-            t0=time.perf_counter()
-            model.fit(X_tr,y_tr,X_val=X_va,y_val=y_va)
-            elapsed=time.perf_counter()-t0
-            score=evaluate_classification(y_va,model.predict_proba(X_va))
-            history=model.history
-            records.append({
-                "Optimizer":name,
-                "ROC-AUC":score["roc_auc"],
-                "PR-AUC":score["pr_auc"],
-                "F1":score["f1_score"],
-                "Final Loss":history["val_loss"][-1],
-                "Seconds":elapsed,
-            })
-            progress.progress(i/len(selected_opts))
-        bench_df=pd.DataFrame(records).sort_values("ROC-AUC",ascending=False)
-        st.session_state["benchmark_results"]=bench_df
+        proba = model.predict_proba(arrays["X_test"])
+        if sample is not None and "label" in sample.columns:
+            submission = sample.copy()
+            submission["label"] = proba
+        else:
+            id_col = "transaction_id" if "transaction_id" in test.columns else test.columns[0]
+            submission = pd.DataFrame({id_col: test[id_col], "label": proba})
 
-    if "benchmark_results" in st.session_state:
-        bench_df=st.session_state["benchmark_results"]
-        m1,m2,m3,m4=st.columns(4)
-        m1.metric("Runs",len(bench_df))
-        m2.metric("Best ROC-AUC",f"{bench_df['ROC-AUC'].max():.4f}")
-        m3.metric("Best PR-AUC",f"{bench_df['PR-AUC'].max():.4f}")
-        m4.metric("Fastest",f"{bench_df['Seconds'].min():.2f}s")
+        st.session_state["submission_df"] = submission
 
-        tab1,tab2=st.tabs(["Leaderboard","Metrics"])
-        with tab1:
-            st.dataframe(bench_df.style.format({
-                "ROC-AUC":"{:.4f}","PR-AUC":"{:.4f}","F1":"{:.4f}",
-                "Final Loss":"{:.5f}","Seconds":"{:.2f}"
-            }),use_container_width=True,hide_index=True)
-        with tab2:
-            metric_df=bench_df.melt(
-                id_vars="Optimizer",
-                value_vars=["ROC-AUC","PR-AUC","F1"],
-                var_name="Metric",value_name="Score"
-            )
-            fig=px.bar(metric_df,x="Optimizer",y="Score",color="Metric",barmode="group",
-                       title="Optimizer metric comparison")
-            st.plotly_chart(plotly_premium(fig),use_container_width=True)
+    submission = st.session_state.get("submission_df")
+    if submission is not None:
+        c1, c2 = st.columns(2)
+        c1.metric("PREDICTIONS", f"{len(submission):,}")
+        c2.metric("MEAN PROBABILITY", f"{submission['label'].mean():.5f}")
 
-# -------------------------------------------------------------
-# 6. Test Predictions & Submissions
-# -------------------------------------------------------------
-elif app_mode == "🚀 Test Predictions & Submissions":
-    st.title("🚀 Test Predictions & Submission File Generator")
-    st.markdown("Generates predictions for `test.csv` in the exact format required by `sample_submission.csv`.")
+        st.dataframe(submission.head(20), use_container_width=True, hide_index=True)
 
-    raw_train, raw_test, raw_sample, data_source = get_uploaded_or_local_data()
-
-    if raw_train is None or raw_test is None:
-        st.warning(
-            "Train and Test CSVs are required for prediction generation. "
-            "Upload both files from the sidebar."
+        csv_bytes = submission.to_csv(index=False).encode("utf-8")
+        st.download_button(
+            "⬇️ Download submission.csv",
+            data=csv_bytes,
+            file_name="submission.csv",
+            mime="text/csv",
+            use_container_width=True,
         )
-        st.stop()
 
-    prepared = build_feature_pipeline(raw_train, raw_test)
-    X_test = prepared["X_test"]
-    X_train = prepared["X_train"]
-    y_train = prepared["y_train"]
+        st.caption(f"Data source: {source}")
 
-    st.write(f"Test Set Records: **{len(raw_test):,}**")
 
-    if st.button("Generate Submission Predictions"):
-        with st.spinner("Training production model on full data and predicting test set..."):
-            prod_model = LogisticRegressionGD(
-                learning_rate=0.01,
-                max_epochs=40,
-                batch_size=128,
-                optimizer=OptimizerType.ADAMW,
-                l2_lambda=0.01
-            )
-            prod_model.fit(X_train, y_train)
-            test_proba = prod_model.predict_proba(X_test)
+# ---------------------------------------------------------------------
+# Footer
+# ---------------------------------------------------------------------
 
-            sub_df = pd.DataFrame({
-                "transaction_id": raw_test["transaction_id"],
-                "label": np.round(test_proba, 6)
-            })
-
-            sub_df.to_csv("submission.csv", index=False)
-            st.success("Predictions generated successfully and saved to `submission.csv`!")
-
-            st.dataframe(sub_df.head(10), use_container_width=True)
-
-            csv_bytes = sub_df.to_csv(index=False).encode('utf-8')
-            st.download_button(
-                label="📥 Download submission.csv",
-                data=csv_bytes,
-                file_name="submission.csv",
-                mime="text/csv"
-            )
+st.markdown("---")
+st.markdown(
+    "<div style='text-align:center;color:#91a7bb;font-size:.82rem;'>"
+    "⚡ Gradient Descent Mastery · NumPy Optimization · Streamlit · "
+    "Data Quality · Convergence Diagnostics"
+    "</div>",
+    unsafe_allow_html=True,
+)
