@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import os
 from typing import Any
 
 import numpy as np
@@ -45,9 +46,9 @@ def load_raw_datasets(
         sample_submission_path=sample_sub_path,
     ).resolve()
 
-    if not config.train_path or not __import__("os").path.isfile(config.train_path):
+    if not config.train_path or not os.path.isfile(config.train_path):
         raise FileNotFoundError(f"Train dataset not found at {config.train_path}")
-    if not config.test_path or not __import__("os").path.isfile(config.test_path):
+    if not config.test_path or not os.path.isfile(config.test_path):
         raise FileNotFoundError(f"Test dataset not found at {config.test_path}")
 
     datasets: dict[str, pd.DataFrame | None] = {
@@ -56,9 +57,7 @@ def load_raw_datasets(
         "sample_submission": None,
     }
 
-    if config.sample_submission_path and __import__("os").path.isfile(
-        config.sample_submission_path
-    ):
+    if config.sample_submission_path and os.path.isfile(config.sample_submission_path):
         datasets["sample_submission"] = pd.read_csv(config.sample_submission_path)
 
     return datasets
