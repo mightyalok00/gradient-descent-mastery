@@ -41,53 +41,77 @@ st.set_page_config(
 # Custom CSS for rich aesthetics
 st.markdown("""
 <style>
-    .main { background-color: #0b0f19; color: #f1f5f9; }
-    .stTabs [data-baseweb="tab-list"] { gap: 10px; }
-    .stTabs [data-baseweb="tab"] {
-        background-color: #1e293b;
-        border-radius: 8px;
-        color: #94a3b8;
-        padding: 10px 20px;
-        font-weight: 600;
-    }
-    .stTabs [aria-selected="true"] {
-        background-color: #3b82f6 !important;
-        color: #ffffff !important;
-    }
-    .metric-box {
-        background: linear-gradient(135deg, #1e293b 0%, #0f172a 100%);
-        border: 1px solid #334155;
-        border-radius: 10px;
-        padding: 15px;
-        text-align: center;
-        margin-bottom: 10px;
-    }
-    .metric-val { font-size: 1.8rem; font-weight: bold; color: #38bdf8; }
-    .metric-lbl { font-size: 0.85rem; color: #94a3b8; text-transform: uppercase; }
-    .theorem-card {
-        background-color: #1e293b;
-        border-left: 4px solid #38bdf8;
-        padding: 15px;
-        border-radius: 0 8px 8px 0;
-        margin-bottom: 15px;
-    }
+.stApp{background:radial-gradient(circle at 8% 0%,rgba(56,189,248,.10),transparent 26%),radial-gradient(circle at 92% 8%,rgba(139,92,246,.10),transparent 25%),#070d18;color:#e5edf7}
+.block-container{max-width:1500px;padding-top:1.2rem}
+[data-testid="stSidebar"]{background:linear-gradient(180deg,#07101d,#0a1625);border-right:1px solid #1c3550}
+[data-testid="stMetric"]{background:linear-gradient(145deg,#102238,#0b1828);border:1px solid #1d3a56;border-radius:14px;padding:14px}
+.hero-v2{border:1px solid #1d3a56;border-radius:22px;padding:28px 30px;margin-bottom:18px;background:linear-gradient(135deg,#122b43,#0b1727);box-shadow:0 18px 60px rgba(0,0,0,.25)}
+.hero-v2 h1{margin:0;font-size:2.5rem;letter-spacing:-.04em}.hero-v2 p{color:#8ea3b8;margin:8px 0 0}
+.badge-v2{display:inline-block;padding:5px 10px;margin:12px 5px 0 0;border-radius:999px;background:rgba(56,189,248,.10);color:#55d6ff;border:1px solid rgba(56,189,248,.22);font-size:.76rem;font-weight:750}
+.card-v2{border:1px solid #1d3a56;border-radius:15px;padding:16px;background:rgba(13,27,43,.76);min-height:110px}
+.card-v2 .num{font-size:1.45rem;font-weight:800;color:#55d6ff}.card-v2 .lbl{font-size:.78rem;color:#8ea3b8;margin-top:5px}
+.stButton>button{border-radius:10px;font-weight:700}
+.theorem-card{background:#0d1b2b;border-left:4px solid #55d6ff;padding:16px;border-radius:0 12px 12px 0}
 </style>
 """, unsafe_allow_html=True)
 
 
 @st.cache_data
 def get_dataset():
-    data_dict = load_and_preprocess_data(val_size=0.2, random_state=42)
-    return data_dict
+    return load_and_preprocess_data(val_size=0.2, random_state=42)
+
+def get_uploaded_or_local_data():
+    train_file = st.session_state.get("uploaded_train")
+    test_file = st.session_state.get("uploaded_test")
+    sample_file = st.session_state.get("uploaded_sample")
+
+    if train_file is not None:
+        train_df = pd.read_csv(train_file)
+        test_df = pd.read_csv(test_file) if test_file is not None else None
+        sample_df = pd.read_csv(sample_file) if sample_file is not None else None
+        return train_df, test_df, sample_df, "Uploaded CSV"
+
+    data = get_dataset()
+    return (
+        data["raw_train"],
+        data["raw_test"],
+        data["raw_sample_submission"],
+        "Repository dataset",
+    )
 
 
 # Sidebar Navigation
-st.sidebar.title("⚡ Gradient Descent AI")
-st.sidebar.caption("Optimization Engine, Missing Formula Analyzer & ML Suite")
+st.sidebar.markdown(
+    '<div style="font-size:1.25rem;font-weight:850;">⚡ GRADIENT DESCENT</div>'
+    '<div style="color:#55d6ff;font-weight:750;letter-spacing:.08em;">MASTERY LAB</div>',
+    unsafe_allow_html=True,
+)
+st.sidebar.caption("Optimization • Data Quality • Diagnostics")
+
+with st.sidebar.expander("Dataset source", expanded=False):
+    st.caption("Use local repository paths or upload CSVs for cloud deployment.")
+    train_upload = st.file_uploader("Train CSV", type="csv", key="train_csv")
+    test_upload = st.file_uploader("Test CSV", type="csv", key="test_csv")
+    sample_upload = st.file_uploader("Sample submission CSV", type="csv", key="sample_csv")
+    if st.button("Use uploaded files", use_container_width=True):
+        if train_upload is None:
+            st.error("Train CSV is required.")
+        else:
+            st.session_state["uploaded_train"] = train_upload
+            st.session_state["uploaded_test"] = test_upload
+            st.session_state["uploaded_sample"] = sample_upload
+            st.cache_data.clear()
+            st.rerun()
+    if st.button("Clear uploads", use_container_width=True):
+        for key in ("uploaded_train", "uploaded_test", "uploaded_sample"):
+            st.session_state.pop(key, None)
+        st.cache_data.clear()
+        st.rerun()
 
 app_mode = st.sidebar.radio(
-    "Navigation Menu",
+    "WORKSPACE",
     [
+        "🏠 Executive Overview",
         "📘 16 Tough Questions & Theory",
         "🔍 Formula-Based Missingness Analyzer",
         "📊 Automated Data Profiler (EDA)",
@@ -96,6 +120,87 @@ app_mode = st.sidebar.radio(
         "🚀 Test Predictions & Submissions"
     ]
 )
+
+# -------------------------------------------------------------
+# 0. Executive Overview
+# -------------------------------------------------------------
+if app_mode == "🏠 Executive Overview":
+    st.markdown(
+        """
+        <div class="hero-v2">
+            <h1>Gradient Descent <span style="color:#55d6ff;">Mastery</span></h1>
+            <p>Optimization intelligence for data quality, gradient dynamics,
+            convergence and production-style model evaluation.</p>
+            <span class="badge-v2">9 OPTIMIZERS</span>
+            <span class="badge-v2">16 THEORY MODULES</span>
+            <span class="badge-v2">FORMULA ENGINE</span>
+            <span class="badge-v2">IMBALANCED ML</span>
+        </div>
+        """,
+        unsafe_allow_html=True,
+    )
+
+    raw_train, raw_test, raw_sample, data_source = get_uploaded_or_local_data()
+
+    if raw_train is None:
+        st.info("Load the repository dataset or upload train.csv from the sidebar.")
+    else:
+        profiler = ComprehensiveDataProfiler(raw_train, dataset_name="Gradient Descent Dataset")
+        overview = profiler.profile["overview"]
+        positive_rate = raw_train["label"].mean() * 100 if "label" in raw_train else float("nan")
+
+        c1, c2, c3, c4, c5 = st.columns(5)
+        c1.metric("Observations", f"{overview['num_rows']:,}")
+        c2.metric("Features", overview["num_cols"])
+        c3.metric("Missing cells", f"{overview['total_missing_cells']:,}")
+        c4.metric("Duplicates", f"{overview['duplicate_rows']:,}")
+        c5.metric("Positive class", f"{positive_rate:.2f}%")
+
+        st.markdown("### Production workflow")
+        stages = [
+            ("01", "Validate", "Schema + nulls"),
+            ("02", "Engineer", "Features + scaling"),
+            ("03", "Optimize", "BGD → AdamW"),
+            ("04", "Diagnose", "Loss + gradients"),
+            ("05", "Evaluate", "ROC / PR / F1"),
+            ("06", "Export", "Validated submission"),
+        ]
+        cols = st.columns(6)
+        for col, (num, title, desc) in zip(cols, stages):
+            col.markdown(
+                f'<div class="card-v2"><div class="num">{num}</div>'
+                f'<b>{title}</b><div class="lbl">{desc}</div></div>',
+                unsafe_allow_html=True,
+            )
+
+        left, right = st.columns(2)
+        with left:
+            if "label" in raw_train:
+                counts = raw_train["label"].value_counts().rename_axis("label").reset_index(name="count")
+                fig = px.bar(
+                    counts,
+                    x="label",
+                    y="count",
+                    text_auto=True,
+                    template="plotly_dark",
+                    title="Target distribution",
+                )
+                st.plotly_chart(fig, use_container_width=True)
+        with right:
+            numeric = raw_train.select_dtypes(include=[np.number]).columns.tolist()
+            if numeric:
+                feature = st.selectbox("Feature distribution", numeric)
+                fig = px.histogram(
+                    raw_train.sample(min(12000, len(raw_train)), random_state=42),
+                    x=feature,
+                    color="label" if "label" in raw_train else None,
+                    marginal="box",
+                    template="plotly_dark",
+                    title=f"Distribution — {feature}",
+                )
+                st.plotly_chart(fig, use_container_width=True)
+
+    st.caption("Data source: " + data_source)
 
 # -------------------------------------------------------------
 # 1. 16 Tough Questions & Theory Solver
@@ -159,8 +264,7 @@ elif app_mode == "🔍 Formula-Based Missingness Analyzer":
     to detect missing rows and columns with exact mathematical precision.
     """)
 
-    data = get_dataset()
-    raw_train = data["raw_train"]
+    raw_train, raw_test, raw_sample, data_source = get_uploaded_or_local_data()
 
     tab1, tab2, tab3 = st.tabs(["📐 Mathematical Formulations", "📊 Real Dataset Analysis", "🧪 Synthetic MCAR Injection Benchmark"])
 
@@ -220,8 +324,7 @@ elif app_mode == "📊 Automated Data Profiler (EDA)":
     st.title("📊 Automated Data Profiling & Exploratory Data Analysis")
     st.markdown("Statistical distributions, feature correlation matrices, skewness, kurtosis, and HTML report export.")
 
-    data = get_dataset()
-    df_train = data["raw_train"]
+    df_train, _, _, data_source = get_uploaded_or_local_data()
 
     profiler = ComprehensiveDataProfiler(df_train, dataset_name="Transaction Fraud Dataset")
     profile = profiler.profile
@@ -379,11 +482,16 @@ elif app_mode == "⚡ Model Training & Diagnostics":
     st.title("⚡ Model Training & Autonomous Convergence Diagnostics")
     st.markdown("Train custom Gradient Descent models on the Transaction dataset and trigger automated health diagnosis.")
 
-    data = get_dataset()
-    X_tr = data["X_train"]
-    y_tr = data["y_train"]
-    X_va = data["X_val"]
-    y_va = data["y_val"]
+    raw_train, raw_test, raw_sample, data_source = get_uploaded_or_local_data()
+    prepared = build_feature_pipeline(raw_train, raw_test)
+    from sklearn.model_selection import train_test_split
+    X_tr, X_va, y_tr, y_va = train_test_split(
+        prepared["X_train"],
+        prepared["y_train"],
+        test_size=0.2,
+        random_state=42,
+        stratify=prepared["y_train"],
+    )
 
     c1, c2, c3, c4 = st.columns(4)
     with c1:
@@ -436,7 +544,15 @@ elif app_mode == "⚡ Model Training & Diagnostics":
 
         # Automated Diagnostic Engine (Question 15)
         st.subheader("Autonomous Convergence Diagnosis Report")
-        diag = ConvergenceDiagnosisSystem.diagnose(hist)
+        diagnostic_history = {
+            "epoch": hist.get("epoch", []),
+            "train_loss": hist.get("train_loss", []),
+            "val_loss": hist.get("val_loss", []),
+            "gradient_norm": hist.get("gradient_norm", hist.get("grad_norm", [])),
+            "parameter_norm": hist.get("parameter_norm", hist.get("param_norm", [])),
+            "learning_rate": hist.get("learning_rate", hist.get("lr", [])),
+        }
+        diag = ConvergenceDiagnosisSystem.diagnose(diagnostic_history)
         
         status_color = "🟢" if diag["severity"] == "OPTIMAL" else "🟡" if diag["severity"] == "WARNING" else "🔴"
         st.markdown(f"**Status:** {status_color} `{diag['status']}` (Severity: `{diag['severity']}`)")
@@ -450,11 +566,11 @@ elif app_mode == "🚀 Test Predictions & Submissions":
     st.title("🚀 Test Predictions & Submission File Generator")
     st.markdown("Generates predictions for `test.csv` in the exact format required by `sample_submission.csv`.")
 
-    data = get_dataset()
-    raw_test = data["raw_test"]
-    X_test = data["X_test"]
-    X_train = data["X_train"]
-    y_train = data["y_train"]
+    raw_train, raw_test, raw_sample, data_source = get_uploaded_or_local_data()
+    prepared = build_feature_pipeline(raw_train, raw_test)
+    X_test = prepared["X_test"]
+    X_train = prepared["X_train"]
+    y_train = prepared["y_train"]
 
     st.write(f"Test Set Records: **{len(raw_test):,}**")
 
