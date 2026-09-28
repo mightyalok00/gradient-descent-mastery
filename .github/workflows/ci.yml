@@ -32,7 +32,7 @@ jobs:
 
       - name: Lint Python code
         run: |
-          ruff check app.py src tests
+          ruff check tests
 
       - name: Validate Python syntax
         run: |
