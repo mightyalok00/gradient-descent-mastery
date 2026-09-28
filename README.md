@@ -278,6 +278,7 @@ gradient-descent-mastery/
 ├── generate_submission.py
 ├── build_notebook.py
 ├── requirements.txt
+├── .env.example
 ├── README.md
 │
 ├── src/
@@ -288,6 +289,12 @@ gradient-descent-mastery/
 │   ├── profiling.py
 │   ├── evaluation.py
 │   └── questions_solutions.py
+│
+├── tests/
+│   ├── test_data_loader.py
+│   ├── test_evaluation.py
+│   ├── test_gradient_descent.py
+│   └── test_missing_analysis.py
 │
 └── .github/
     └── workflows/
@@ -305,6 +312,8 @@ gradient-descent-mastery/
 | `evaluation.py` | Metrics, diagnostics and ablation analysis |
 | `questions_solutions.py` | Theory, proofs and derivations |
 | `app.py` | Interactive Streamlit application |
+| `tests/` | Automated unit and integration tests |
+| `.env.example` | Reproducible dataset-path configuration template |
 
 ---
 
@@ -372,6 +381,9 @@ The repository includes an automated CI workflow for:
 - Python 3.11
 - Python 3.12
 - Dependency installation
+- Ruff linting
+- Automated pytest suite
+- Coverage reporting
 - `app.py` syntax validation
 - `src/` compilation
 - Core module import validation
@@ -381,7 +393,7 @@ The repository includes an automated CI workflow for:
 Workflow:
 
 ```text
-Push / Pull Request
+Push / Pull Request / Manual Run
         ↓
 Install Dependencies
         ↓
@@ -395,6 +407,54 @@ Validate Notebook
         ↓
 Validate Notebook Format
 ```
+
+---
+
+## 🧪 Testing & Quality
+
+Run the automated test suite locally:
+
+```bash
+pytest -q
+```
+
+Run tests with coverage:
+
+```bash
+pytest -q --cov=src --cov-report=term-missing
+```
+
+Run the linter:
+
+```bash
+ruff check app.py src tests
+```
+
+The CI pipeline runs these checks automatically across Python 3.10, 3.11 and 3.12.
+
+---
+
+## ⚙️ Reproducible Data Configuration
+
+The data loader supports environment variables so local Windows paths are not required.
+
+Copy the example configuration and point it to your dataset:
+
+```text
+GD_TRAIN_PATH=./data/train.csv
+GD_TEST_PATH=./data/test.csv
+GD_SAMPLE_SUBMISSION_PATH=./data/sample_submission.csv
+```
+
+For a local Windows setup, absolute paths are also supported:
+
+```text
+GD_TRAIN_PATH=D:\\gradient_descent\\train.csv
+GD_TEST_PATH=D:\\gradient_descent\\test.csv
+GD_SAMPLE_SUBMISSION_PATH=D:\\gradient_descent\\sample_submission.csv
+```
+
+The loader checks configured environment paths first, then repository-local `data/` paths, then repository-root CSV files, with the historical Windows path as a final fallback.
 
 ---
 
