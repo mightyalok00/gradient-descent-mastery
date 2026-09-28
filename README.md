@@ -283,7 +283,10 @@ gradient-descent-mastery/
 │
 ├── src/
 │   ├── __init__.py
+│   ├── config.py
 │   ├── data_loader.py
+│   ├── features.py
+│   ├── validation.py
 │   ├── gradient_descent.py
 │   ├── missing_analysis.py
 │   ├── profiling.py
@@ -291,10 +294,12 @@ gradient-descent-mastery/
 │   └── questions_solutions.py
 │
 ├── tests/
+│   ├── test_config.py
 │   ├── test_data_loader.py
 │   ├── test_evaluation.py
 │   ├── test_gradient_descent.py
-│   └── test_missing_analysis.py
+│   ├── test_missing_analysis.py
+│   └── test_validation.py
 │
 └── .github/
     └── workflows/
@@ -305,7 +310,10 @@ gradient-descent-mastery/
 
 | Module | Responsibility |
 |---|---|
-| `data_loader.py` | Loading, preprocessing, feature engineering and scaling |
+| `config.py` | Centralized dataset paths and preprocessing configuration |
+| `data_loader.py` | Loading, orchestration and train/validation preparation |
+| `features.py` | Deterministic feature engineering |
+| `validation.py` | Schema, target, ID and numeric integrity checks |
 | `gradient_descent.py` | Gradient Descent models and optimizers |
 | `missing_analysis.py` | Mathematical missing-data analysis |
 | `profiling.py` | Statistical profiling and EDA |
@@ -427,7 +435,7 @@ pytest -q --cov=src --cov-report=term-missing
 Run the linter:
 
 ```bash
-ruff check app.py src tests
+ruff check tests
 ```
 
 The CI pipeline runs these checks automatically across Python 3.10, 3.11 and 3.12.
@@ -454,7 +462,7 @@ GD_TEST_PATH=D:\\gradient_descent\\test.csv
 GD_SAMPLE_SUBMISSION_PATH=D:\\gradient_descent\\sample_submission.csv
 ```
 
-The loader checks configured environment paths first, then repository-local `data/` paths, then repository-root CSV files, with the historical Windows path as a final fallback.
+The loader checks explicit function arguments first, then environment paths, repository-local `data/` paths, repository-root CSV files, and finally the historical Windows path. Dataset validation runs before model preprocessing, while preprocessing state is fitted from training data and reused for test data.
 
 ---
 
