@@ -33,3 +33,7 @@ jobs:
     - name: Validate Python Modules
       run: |
         python -c "from src import load_and_preprocess_data, MissingDataFormulaAnalyzer, LinearRegressionGD, LogisticRegressionGD, ComprehensiveDataProfiler; print('All core modules imported cleanly!')"
+
+    - name: Validate Streamlit App Syntax
+      run: |
+        python -m py_compile app.py
