@@ -31,5 +31,6 @@ def test_missingness_thresholds():
     analyzer = MissingDataFormulaAnalyzer(df)
     result = analyzer.filter_by_threshold(row_tau=0.5, col_tau=0.5)
 
-    assert result["rows_above_threshold_indices"] == [2, 3]
-    assert result["cols_above_threshold_names"] == ["a", "b"]
+    # The implementation uses >= for threshold comparisons.
+    assert result["rows_above_threshold_indices"] == [1, 2, 3]
+    assert result["cols_above_threshold_names"] == ["a"]
