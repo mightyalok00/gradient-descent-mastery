@@ -154,7 +154,7 @@ if app_mode == "📘 16 Tough Questions & Theory":
 # -------------------------------------------------------------
 elif app_mode == "🔍 Formula-Based Missingness Analyzer":
     st.title("🔍 Missing Rows and Columns Analysis by Mathematical Formula")
-    st.markdown("""
+    st.markdown(r"""
     This module uses linear algebra formulations ($M \in \{0,1\}^{N \times d}$, $\rho_i = (M \mathbf{1})_i / d$, $\gamma_j = (\mathbf{1}^T M)_j / N$) 
     to detect missing rows and columns with exact mathematical precision.
     """)
@@ -193,8 +193,8 @@ elif app_mode == "🔍 Formula-Based Missingness Analyzer":
             col_tau = st.slider("Column Missing Threshold (τ_col)", 0.0, 1.0, 0.5, 0.05)
 
         filtered = analyzer.filter_by_threshold(row_tau=row_tau, col_tau=col_tau)
-        st.write(f"Rows with $\\rho_i \ge {row_tau}$: **{filtered['rows_above_threshold_count']}**")
-        st.write(f"Columns with $\\gamma_j \ge {col_tau}$: **{filtered['cols_above_threshold_count']}** ({filtered['cols_above_threshold_names']})")
+        st.write(f"Rows with $\\rho_i \\ge {row_tau}$: **{filtered['rows_above_threshold_count']}**")
+        st.write(f"Columns with $\\gamma_j \\ge {col_tau}$: **{filtered['cols_above_threshold_count']}** ({filtered['cols_above_threshold_names']})")
 
     with tab3:
         st.subheader("Synthetic Injection Testing (Validating Formula Engine)")

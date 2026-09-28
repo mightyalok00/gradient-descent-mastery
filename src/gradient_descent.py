@@ -1,4 +1,4 @@
-"""
+r"""
 Gradient Descent Optimization Engine from Scratch
 =================================================
 This module contains pure NumPy vectorized implementations of:
@@ -243,7 +243,7 @@ class BaseGradientDescent:
 class LogisticRegressionGD(BaseGradientDescent):
     """
     Binary Logistic Regression trained with arbitrary Gradient Descent Optimizers.
-    Target y \in {0, 1}.
+    Target y in {0, 1}.
     """
     @staticmethod
     def _sigmoid(z: np.ndarray) -> np.ndarray:

@@ -9,7 +9,7 @@ nb = nbf.v4.new_notebook()
 cells = []
 
 # Title and header
-cells.append(nbf.v4.new_markdown_cell("""# Gradient Descent Optimization, Theory, Missing Data Formulas & ML Pipeline
+cells.append(nbf.v4.new_markdown_cell(r"""# Gradient Descent Optimization, Theory, Missing Data Formulas & ML Pipeline
 ## Advanced Deep Analysis, 16 Tough Questions Solutions & End-to-End Pipeline
 **Author:** AI Machine Learning & Optimization Specialist  
 **Dataset Paths:**
@@ -83,7 +83,7 @@ print('Environment initialized successfully with Python', sys.version.split()[0]
 """))
 
 # Cell 2: Missing Data Theory Markdown
-cells.append(nbf.v4.new_markdown_cell("""## 2. Missing Rows and Columns Analysis by Mathematical Formula
+cells.append(nbf.v4.new_markdown_cell(r"""## 2. Missing Rows and Columns Analysis by Mathematical Formula
 
 ### Mathematical Foundations:
 Let $X \in \mathbb{R}^{N \times d}$ be a data matrix with $N$ rows and $d$ columns.
@@ -174,7 +174,7 @@ class MathematicalMissingAnalyzer:
         return col_df
 
 # Load the real training dataset and execute formula analysis
-train_file_path = r"D:\gradient_descent\train.csv"
+train_file_path = r"D:/gradient_descent/train.csv"
 if os.path.exists(train_file_path):
     df_train_raw = pd.read_csv(train_file_path)
     analyzer = MathematicalMissingAnalyzer(df_train_raw)
@@ -220,7 +220,7 @@ if 'df_train_raw' in locals():
 """))
 
 # Cell 5: Profiling
-cells.append(nbf.v4.new_markdown_cell("""## 3. Automated Data Profiling & Exploratory Data Analysis
+cells.append(nbf.v4.new_markdown_cell(r"""## 3. Automated Data Profiling & Exploratory Data Analysis
 Comprehensive statistical profiling, skewness, kurtosis, distributions, and HTML report generation.
 """))
 
@@ -265,7 +265,7 @@ if 'df_train_raw' in locals():
 """))
 
 # Cell 6: Gradient Descent from Scratch
-cells.append(nbf.v4.new_markdown_cell("""## 4. Pure NumPy Gradient Descent Optimization Engine
+cells.append(nbf.v4.new_markdown_cell(r"""## 4. Pure NumPy Gradient Descent Optimization Engine
 Implementing from first principles:
 - Batch Gradient Descent (BGD)
 - Stochastic Gradient Descent (SGD)
@@ -456,7 +456,7 @@ print("Advanced Gradient Descent Engine defined successfully.")
 """))
 
 # Cell 7: Feature Engineering and Split
-cells.append(nbf.v4.new_markdown_cell("""## 5. End-to-End Preprocessing, Training & Diagnostic Telemetry"""))
+cells.append(nbf.v4.new_markdown_cell(r"""## 5. End-to-End Preprocessing, Training & Diagnostic Telemetry"""))
 
 cells.append(nbf.v4.new_code_cell("""# ==============================================================================
 # Cell 6: Data Preprocessing Pipeline & Feature Scaling
@@ -526,7 +526,7 @@ print(results_df.to_string())
 """))
 
 # Cell 9: Solutions to 16 Questions Markdown
-cells.append(nbf.v4.new_markdown_cell("""## 6. Detailed Mathematical Solutions to the 16 Tough Questions
+cells.append(nbf.v4.new_markdown_cell(r"""## 6. Detailed Mathematical Solutions to the 16 Tough Questions
 
 ### Summary of Theoretical Derivations & System Designs:
 
@@ -591,13 +591,13 @@ cells.append(nbf.v4.new_markdown_cell("""## 6. Detailed Mathematical Solutions t
 """))
 
 # Cell 10: Inference and Submission File Generation
-cells.append(nbf.v4.new_markdown_cell("""## 7. Test Inference & Submission Generation (`submission.csv`)"""))
+cells.append(nbf.v4.new_markdown_cell(r"""## 7. Test Inference & Submission Generation (`submission.csv`)"""))
 
 cells.append(nbf.v4.new_code_cell("""# ==============================================================================
 # Cell 8: Inference on test.csv & Verification against sample_submission.csv
 # ==============================================================================
-test_file_path = r"D:\gradient_descent\test.csv"
-sub_file_path = r"D:\gradient_descent\sample_submission.csv"
+test_file_path = r"D:/gradient_descent/test.csv"
+sub_file_path = r"D:/gradient_descent/sample_submission.csv"
 
 if os.path.exists(test_file_path):
     df_test_raw = pd.read_csv(test_file_path)
