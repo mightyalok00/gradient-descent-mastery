@@ -569,6 +569,11 @@ elif app_mode == "⚡ Model Training & Diagnostics":
             model.fit(X_tr, y_tr, X_val=X_va, y_val=y_va)
 
         st.success("Training completed successfully!")
+
+        # Evaluate before storing experiment telemetry.
+        y_val_proba = model.predict_proba(X_va)
+        metrics = evaluate_classification(y_va, y_val_proba)
+
         # Persist a compact experiment record for the command center.
         run_number = len(st.session_state.get("experiment_history", [])) + 1
         store_experiment({
@@ -580,11 +585,6 @@ elif app_mode == "⚡ Model Training & Diagnostics":
             "final_loss": model.history["val_loss"][-1],
             "epochs": len(model.history["epoch"]),
         })
-
-
-        # Performance evaluation
-        y_val_proba = model.predict_proba(X_va)
-        metrics = evaluate_classification(y_va, y_val_proba)
 
         m1, m2, m3, m4 = st.columns(4)
         m1.metric("Validation ROC-AUC", f"{metrics['roc_auc']:.4f}")
@@ -665,6 +665,10 @@ elif app_mode == "🏆 Optimizer Benchmark":
     )
 
     if st.button("🏁 Run benchmark",type="primary",use_container_width=True):
+        if not selected_opts:
+            st.warning("Select at least one optimizer before running the benchmark.")
+            st.stop()
+
         records=[]
         progress=st.progress(0.0)
         for i,name in enumerate(selected_opts,1):
