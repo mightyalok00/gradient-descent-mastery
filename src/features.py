@@ -15,8 +15,13 @@ CATEGORICAL_NUMERIC_COLUMNS = (
 )
 
 
-def engineer_features(df: pd.DataFrame) -> pd.DataFrame:
-    """Create deterministic model features without fitting preprocessing state."""
+def engineer_features(
+    df: pd.DataFrame,
+    *,
+    timestamp_min: float | None = None,
+    timestamp_max: float | None = None,
+) -> pd.DataFrame:
+    """Create deterministic features using optional train-fitted time bounds."""
 
     features = pd.DataFrame(index=df.index)
 
@@ -32,8 +37,10 @@ def engineer_features(df: pd.DataFrame) -> pd.DataFrame:
 
     if "timestamp" in df.columns:
         timestamp = pd.to_numeric(df["timestamp"], errors="coerce")
-        denominator = timestamp.max() - timestamp.min() + 1e-9
-        features["timestamp_norm"] = (timestamp - timestamp.min()) / denominator
+        lower = timestamp.min() if timestamp_min is None else timestamp_min
+        upper = timestamp.max() if timestamp_max is None else timestamp_max
+        denominator = upper - lower + 1e-9
+        features["timestamp_norm"] = (timestamp - lower) / denominator
         features["time_sin_24h"] = np.sin(2 * np.pi * (timestamp % 86400) / 86400.0)
         features["time_cos_24h"] = np.cos(2 * np.pi * (timestamp % 86400) / 86400.0)
 
