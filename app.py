@@ -406,6 +406,10 @@ if app_mode == "📘 16 Tough Questions & Theory":
         if number in QUESTIONS_AND_SOLUTIONS
     ]
 
+    # Keep the question widget valid when the user changes sections.
+    if st.session_state.get("theory_question_selector") not in section_questions:
+        st.session_state["theory_question_selector"] = section_questions[0]
+
     st.markdown(
         '<div class="theory-section-label">02 · QUESTION NAVIGATION</div>',
         unsafe_allow_html=True,
@@ -490,7 +494,7 @@ if app_mode == "📘 16 Tough Questions & Theory":
             <div class="question-index">
                 QUESTION {selected_question:02d} / 16
             </div>
-            <h2>{icon} {current_data["title"]}</h2>
+            <h2>{icon} {current_data['title']}</h2>
         </div>
         """,
         unsafe_allow_html=True,
