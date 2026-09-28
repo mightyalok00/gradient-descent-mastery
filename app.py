@@ -471,6 +471,17 @@ elif app_mode == "📘 16 Tough Questions & Theory":
         st.stop()
 
     all_q = list(range(1, 17))
+
+    # Navigation buttons cannot mutate the state of an already-instantiated
+    # Streamlit widget. Store navigation requests first, then apply them on
+    # the next script run before creating the widgets.
+    pending_section = st.session_state.pop("pending_theory_section", None)
+    pending_question = st.session_state.pop("pending_theory_question", None)
+    if pending_section is not None:
+        st.session_state["theory_section"] = pending_section
+    if pending_question is not None:
+        st.session_state["theory_question"] = pending_question
+
     section = st.selectbox("Theory section", list(sections), key="theory_section")
     valid_q = sections[section]
 
@@ -505,8 +516,8 @@ elif app_mode == "📘 16 Tough Questions & Theory":
     with a:
         if st.button("← Previous", disabled=prev_q is None, use_container_width=True):
             prev_section = next(name for name, nums in sections.items() if prev_q in nums)
-            st.session_state["theory_section"] = prev_section
-            st.session_state["theory_question"] = prev_q
+            st.session_state["pending_theory_section"] = prev_section
+            st.session_state["pending_theory_question"] = prev_q
             st.rerun()
     with b:
         st.markdown(
@@ -516,8 +527,8 @@ elif app_mode == "📘 16 Tough Questions & Theory":
     with c:
         if st.button("Next →", disabled=next_q is None, use_container_width=True):
             next_section = next(name for name, nums in sections.items() if next_q in nums)
-            st.session_state["theory_section"] = next_section
-            st.session_state["theory_question"] = next_q
+            st.session_state["pending_theory_section"] = next_section
+            st.session_state["pending_theory_question"] = next_q
             st.rerun()
 
     st.markdown('<div class="section-label">Problem statement</div>', unsafe_allow_html=True)
