@@ -41,17 +41,31 @@ st.set_page_config(
 # Custom CSS for rich aesthetics
 st.markdown("""
 <style>
-.stApp{background:radial-gradient(circle at 8% 0%,rgba(56,189,248,.10),transparent 26%),radial-gradient(circle at 92% 8%,rgba(139,92,246,.10),transparent 25%),#070d18;color:#e5edf7}
-.block-container{max-width:1500px;padding-top:1.2rem}
-[data-testid="stSidebar"]{background:linear-gradient(180deg,#07101d,#0a1625);border-right:1px solid #1c3550}
-[data-testid="stMetric"]{background:linear-gradient(145deg,#102238,#0b1828);border:1px solid #1d3a56;border-radius:14px;padding:14px}
-.hero-v2{border:1px solid #1d3a56;border-radius:22px;padding:28px 30px;margin-bottom:18px;background:linear-gradient(135deg,#122b43,#0b1727);box-shadow:0 18px 60px rgba(0,0,0,.25)}
-.hero-v2 h1{margin:0;font-size:2.5rem;letter-spacing:-.04em}.hero-v2 p{color:#8ea3b8;margin:8px 0 0}
-.badge-v2{display:inline-block;padding:5px 10px;margin:12px 5px 0 0;border-radius:999px;background:rgba(56,189,248,.10);color:#55d6ff;border:1px solid rgba(56,189,248,.22);font-size:.76rem;font-weight:750}
-.card-v2{border:1px solid #1d3a56;border-radius:15px;padding:16px;background:rgba(13,27,43,.76);min-height:110px}
-.card-v2 .num{font-size:1.45rem;font-weight:800;color:#55d6ff}.card-v2 .lbl{font-size:.78rem;color:#8ea3b8;margin-top:5px}
-.stButton>button{border-radius:10px;font-weight:700}
-.theorem-card{background:#0d1b2b;border-left:4px solid #55d6ff;padding:16px;border-radius:0 12px 12px 0}
+:root{--cyan:#55d6ff;--violet:#9b8cff;--bg:#060b14;--panel:#0b1626;--border:#1d3853;--muted:#8ea3b8;--good:#34d399;--warn:#fbbf24;--bad:#fb7185}
+.stApp{background:radial-gradient(circle at 10% -5%,rgba(85,214,255,.13),transparent 25%),radial-gradient(circle at 92% 2%,rgba(155,140,255,.13),transparent 27%),linear-gradient(180deg,#060b14,#08111e 55%,#060b14);color:#e8f1fb}
+.block-container{max-width:1520px;padding:1.1rem 2rem 2.5rem}
+[data-testid="stSidebar"]{background:linear-gradient(180deg,#050c16,#091522);border-right:1px solid #17324b}
+[data-testid="stMetric"]{background:linear-gradient(145deg,rgba(16,37,59,.92),rgba(7,20,34,.94));border:1px solid var(--border);border-radius:15px;padding:15px;box-shadow:0 10px 35px rgba(0,0,0,.16)}
+[data-testid="stMetricLabel"]{color:var(--muted)}
+[data-testid="stMetricValue"]{font-weight:800}
+.hero-v2{position:relative;overflow:hidden;border:1px solid #234663;border-radius:24px;padding:32px;margin:0 0 20px;background:linear-gradient(135deg,rgba(18,45,69,.96),rgba(9,21,36,.96));box-shadow:0 24px 80px rgba(0,0,0,.28)}
+.hero-v2:after{content:"";position:absolute;width:280px;height:280px;right:-90px;top:-110px;border-radius:50%;background:radial-gradient(circle,rgba(85,214,255,.18),transparent 65%);pointer-events:none}
+.hero-v2 h1{margin:0;font-size:2.7rem;letter-spacing:-.055em}.hero-v2 p{color:#9bb0c5;margin:8px 0 0;font-size:1.02rem}
+.badge-v2{display:inline-block;padding:6px 11px;margin:14px 5px 0 0;border-radius:999px;background:rgba(85,214,255,.09);color:var(--cyan);border:1px solid rgba(85,214,255,.22);font-size:.73rem;font-weight:800;letter-spacing:.05em}
+.card-v2{border:1px solid var(--border);border-radius:16px;padding:17px;background:linear-gradient(145deg,rgba(13,29,46,.90),rgba(7,18,31,.90));min-height:110px;box-shadow:0 12px 40px rgba(0,0,0,.12)}
+.card-v2 .num{font-size:1.5rem;font-weight:850;color:var(--cyan)}.card-v2 .lbl{font-size:.77rem;color:var(--muted);margin-top:5px;text-transform:uppercase;letter-spacing:.06em}
+.section-v2{font-size:.74rem;font-weight:850;letter-spacing:.12em;color:var(--cyan);text-transform:uppercase;margin:24px 0 9px}
+.status-card{border:1px solid var(--border);border-radius:16px;padding:18px;background:rgba(10,24,39,.86)}
+.status-dot{display:inline-block;width:9px;height:9px;border-radius:50%;background:var(--good);box-shadow:0 0 14px rgba(52,211,153,.7);margin-right:7px}
+.score-ring{font-size:2.1rem;font-weight:900;color:var(--cyan)}
+.stButton>button{border-radius:11px;font-weight:750;border:1px solid #244762}
+.stButton>button:hover{border-color:var(--cyan);box-shadow:0 0 20px rgba(85,214,255,.10)}
+div[data-testid="stExpander"]{border:1px solid var(--border);border-radius:13px;background:rgba(8,20,33,.55)}
+div[data-baseweb="tab-list"]{gap:8px}
+button[data-baseweb="tab"]{font-weight:700}
+.theorem-card{background:#0d1b2b;border-left:4px solid var(--cyan);padding:16px;border-radius:0 12px 12px 0}
+.small-muted{color:var(--muted);font-size:.82rem}
+hr{border-color:#183149}
 </style>
 """, unsafe_allow_html=True)
 
@@ -59,6 +73,29 @@ st.markdown("""
 @st.cache_data
 def get_dataset():
     return load_and_preprocess_data(val_size=0.2, random_state=42)
+
+def plotly_premium(fig: go.Figure, title: str | None = None) -> go.Figure:
+    """Apply one consistent visual language to every chart."""
+    fig.update_layout(
+        template="plotly_dark",
+        paper_bgcolor="rgba(0,0,0,0)",
+        plot_bgcolor="rgba(0,0,0,0)",
+        font=dict(family="Inter, Segoe UI, sans-serif", color="#dbeafe"),
+        title=dict(text=title, font=dict(size=18, color="#e8f1fb")),
+        margin=dict(l=18, r=18, t=58, b=18),
+        hovermode="x unified",
+        legend=dict(orientation="h", yanchor="bottom", y=1.02, xanchor="right", x=1),
+    )
+    fig.update_xaxes(showgrid=True, gridcolor="rgba(148,163,184,.10)", zeroline=False)
+    fig.update_yaxes(showgrid=True, gridcolor="rgba(148,163,184,.10)", zeroline=False)
+    return fig
+
+
+def store_experiment(record: dict) -> None:
+    history = st.session_state.setdefault("experiment_history", [])
+    history.append(record)
+    st.session_state["experiment_history"] = history[-12:]
+
 
 def get_uploaded_or_local_data():
     train_file = st.session_state.get("uploaded_train")
@@ -117,6 +154,7 @@ app_mode = st.sidebar.radio(
         "📊 Automated Data Profiler (EDA)",
         "🧪 Interactive Gradient Descent Lab",
         "⚡ Model Training & Diagnostics",
+        "🏆 Optimizer Benchmark",
         "🚀 Test Predictions & Submissions"
     ]
 )
@@ -125,82 +163,90 @@ app_mode = st.sidebar.radio(
 # 0. Executive Overview
 # -------------------------------------------------------------
 if app_mode == "🏠 Executive Overview":
+    raw_train, raw_test, raw_sample, data_source = get_uploaded_or_local_data()
+
     st.markdown(
         """
         <div class="hero-v2">
+            <div style="font-size:.72rem;color:#55d6ff;font-weight:850;letter-spacing:.16em;">
+                OPTIMIZATION INTELLIGENCE PLATFORM
+            </div>
             <h1>Gradient Descent <span style="color:#55d6ff;">Mastery</span></h1>
-            <p>Optimization intelligence for data quality, gradient dynamics,
-            convergence and production-style model evaluation.</p>
+            <p>Experiment, visualize and diagnose gradient-based learning from raw data to validated submission.</p>
             <span class="badge-v2">9 OPTIMIZERS</span>
             <span class="badge-v2">16 THEORY MODULES</span>
+            <span class="badge-v2">LIVE TELEMETRY</span>
             <span class="badge-v2">FORMULA ENGINE</span>
-            <span class="badge-v2">IMBALANCED ML</span>
         </div>
         """,
         unsafe_allow_html=True,
     )
 
-    raw_train, raw_test, raw_sample, data_source = get_uploaded_or_local_data()
-
     if raw_train is None:
-        st.info("Load the repository dataset or upload train.csv from the sidebar.")
+        st.warning("No dataset is available. Upload train/test CSVs from the sidebar.")
     else:
-        profiler = ComprehensiveDataProfiler(raw_train, dataset_name="Gradient Descent Dataset")
-        overview = profiler.profile["overview"]
+        profile = ComprehensiveDataProfiler(raw_train, "Gradient Descent Dataset").profile["overview"]
         positive_rate = raw_train["label"].mean() * 100 if "label" in raw_train else float("nan")
+        missing_rate = profile["total_missing_percentage"]
+        health = max(0.0, 100.0 - min(100.0, missing_rate * 4.0))
 
-        c1, c2, c3, c4, c5 = st.columns(5)
-        c1.metric("Observations", f"{overview['num_rows']:,}")
-        c2.metric("Features", overview["num_cols"])
-        c3.metric("Missing cells", f"{overview['total_missing_cells']:,}")
-        c4.metric("Duplicates", f"{overview['duplicate_rows']:,}")
-        c5.metric("Positive class", f"{positive_rate:.2f}%")
+        c1,c2,c3,c4,c5,c6=st.columns(6)
+        c1.metric("OBSERVATIONS", f"{profile['num_rows']:,}")
+        c2.metric("FEATURES", profile["num_cols"])
+        c3.metric("MISSING", f"{missing_rate:.2f}%")
+        c4.metric("DUPLICATES", f"{profile['duplicate_rows']:,}")
+        c5.metric("POSITIVE CLASS", f"{positive_rate:.2f}%")
+        c6.metric("DATA HEALTH", f"{health:.1f}/100")
 
-        st.markdown("### Production workflow")
-        stages = [
-            ("01", "Validate", "Schema + nulls"),
-            ("02", "Engineer", "Features + scaling"),
-            ("03", "Optimize", "BGD → AdamW"),
-            ("04", "Diagnose", "Loss + gradients"),
-            ("05", "Evaluate", "ROC / PR / F1"),
-            ("06", "Export", "Validated submission"),
-        ]
-        cols = st.columns(6)
-        for col, (num, title, desc) in zip(cols, stages):
+        st.markdown('<div class="section-v2">SYSTEM STATUS</div>', unsafe_allow_html=True)
+        s1,s2,s3,s4=st.columns(4)
+        for col,label,detail in [
+            (s1,"DATA ENGINE","Schema + profiling ready"),
+            (s2,"OPTIMIZATION","9 gradient methods"),
+            (s3,"DIAGNOSTICS","Convergence engine ready"),
+            (s4,"EXPORT","Submission pipeline ready"),
+        ]:
             col.markdown(
-                f'<div class="card-v2"><div class="num">{num}</div>'
-                f'<b>{title}</b><div class="lbl">{desc}</div></div>',
+                f'<div class="status-card"><span class="status-dot"></span><b>{label}</b>'
+                f'<div class="small-muted" style="margin-top:7px;">{detail}</div></div>',
                 unsafe_allow_html=True,
             )
 
-        left, right = st.columns(2)
+        st.markdown('<div class="section-v2">OPTIMIZATION COMMAND CENTER</div>', unsafe_allow_html=True)
+        left,right=st.columns([1.45,1])
+
         with left:
             if "label" in raw_train:
-                counts = raw_train["label"].value_counts().rename_axis("label").reset_index(name="count")
-                fig = px.bar(
-                    counts,
-                    x="label",
-                    y="count",
-                    text_auto=True,
-                    template="plotly_dark",
-                    title="Target distribution",
-                )
-                st.plotly_chart(fig, use_container_width=True)
-        with right:
-            numeric = raw_train.select_dtypes(include=[np.number]).columns.tolist()
-            if numeric:
-                feature = st.selectbox("Feature distribution", numeric)
-                fig = px.histogram(
-                    raw_train.sample(min(12000, len(raw_train)), random_state=42),
-                    x=feature,
-                    color="label" if "label" in raw_train else None,
-                    marginal="box",
-                    template="plotly_dark",
-                    title=f"Distribution — {feature}",
-                )
-                st.plotly_chart(fig, use_container_width=True)
+                counts=raw_train["label"].value_counts().rename_axis("label").reset_index(name="count")
+                fig=px.bar(counts,x="label",y="count",text_auto=True,title="Target distribution")
+                st.plotly_chart(plotly_premium(fig),use_container_width=True)
 
-    st.caption("Data source: " + data_source)
+        with right:
+            experiment_history=st.session_state.get("experiment_history",[])
+            if experiment_history:
+                exp_df=pd.DataFrame(experiment_history)
+                fig=px.line(exp_df,x="run",y="roc_auc",markers=True,title="Experiment ROC-AUC history")
+                st.plotly_chart(plotly_premium(fig),use_container_width=True)
+            else:
+                st.markdown(
+                    '<div class="card-v2" style="min-height:250px;">'
+                    '<div class="score-ring">READY</div>'
+                    '<h3>Experiment telemetry</h3>'
+                    '<div class="small-muted">Train a model from Model Training to populate live experiment history.</div>'
+                    '</div>',
+                    unsafe_allow_html=True,
+                )
+
+        st.markdown('<div class="section-v2">FEATURE EXPLORER</div>', unsafe_allow_html=True)
+        numeric=raw_train.select_dtypes(include=[np.number]).columns.tolist()
+        if numeric:
+            feature=st.selectbox("Select feature",numeric,key="overview_feature")
+            sample=raw_train.sample(min(12000,len(raw_train)),random_state=42)
+            fig=px.histogram(sample,x=feature,color="label" if "label" in sample else None,
+                             marginal="box",title=f"{feature} distribution")
+            st.plotly_chart(plotly_premium(fig),use_container_width=True)
+
+        st.caption(f"Data source: {data_source}")
 
 # -------------------------------------------------------------
 # 1. 16 Tough Questions & Theory Solver
@@ -348,7 +394,7 @@ elif app_mode == "📊 Automated Data Profiler (EDA)":
         title="Feature Correlation Matrix (Pearson)"
     )
     fig_corr.update_layout(template="plotly_dark")
-    st.plotly_chart(fig_corr, use_container_width=True)
+    st.plotly_chart(plotly_premium(fig_corr), use_container_width=True)
 
     st.markdown("### Feature Distribution Visualizer")
     selected_feature = st.selectbox("Select Feature to Plot", options=num_cols)
@@ -361,7 +407,7 @@ elif app_mode == "📊 Automated Data Profiler (EDA)":
         template="plotly_dark",
         opacity=0.75
     )
-    st.plotly_chart(fig_dist, use_container_width=True)
+    st.plotly_chart(plotly_premium(fig_dist), use_container_width=True)
 
     if st.button("Generate & Download HTML Profiling Report"):
         html_path = profiler.generate_html_report("dataset_profiling_report.html")
@@ -469,11 +515,11 @@ elif app_mode == "🧪 Interactive Gradient Descent Lab":
         fig_opt.add_trace(go.Contour(x=x_grid, y=y_grid, z=Z, contours_coloring='lines', colorscale='Viridis', showscale=False))
         fig_opt.add_trace(go.Scatter(x=traj[:, 0], y=traj[:, 1], mode='lines+markers', marker=dict(color='orange', size=6), line=dict(color='orange', width=2), name=optimizer_choice))
         fig_opt.update_layout(title=f"Optimization Trajectory ({optimizer_choice})", template="plotly_dark", xaxis_title="w1", yaxis_title="w2")
-        st.plotly_chart(fig_opt, use_container_width=True)
+        st.plotly_chart(plotly_premium(fig_opt), use_container_width=True)
 
     with col_fig2:
         fig_loss = px.line(x=list(range(len(losses))), y=losses, log_y=True, title="Loss vs Iteration (Log Scale)", labels={"x": "Iteration", "y": "Loss"}, template="plotly_dark")
-        st.plotly_chart(fig_loss, use_container_width=True)
+        st.plotly_chart(plotly_premium(fig_loss), use_container_width=True)
 
 # -------------------------------------------------------------
 # 5. Model Training & Diagnostics
@@ -523,6 +569,18 @@ elif app_mode == "⚡ Model Training & Diagnostics":
             model.fit(X_tr, y_tr, X_val=X_va, y_val=y_va)
 
         st.success("Training completed successfully!")
+        # Persist a compact experiment record for the command center.
+        run_number = len(st.session_state.get("experiment_history", [])) + 1
+        store_experiment({
+            "run": run_number,
+            "optimizer": str(opt_choice).split(".")[-1],
+            "roc_auc": metrics["roc_auc"],
+            "pr_auc": metrics["pr_auc"],
+            "f1": metrics["f1_score"],
+            "final_loss": model.history["val_loss"][-1],
+            "epochs": len(model.history["epoch"]),
+        })
+
 
         # Performance evaluation
         y_val_proba = model.predict_proba(X_va)
@@ -540,7 +598,22 @@ elif app_mode == "⚡ Model Training & Diagnostics":
         fig_hist.add_trace(go.Scatter(x=hist["epoch"], y=hist["train_loss"], name="Train Loss", line=dict(color="#38bdf8", width=2)))
         fig_hist.add_trace(go.Scatter(x=hist["epoch"], y=hist["val_loss"], name="Val Loss", line=dict(color="#f43f5e", width=2)))
         fig_hist.update_layout(title="Learning Curve (Loss Convergence)", template="plotly_dark", xaxis_title="Epoch", yaxis_title="Binary Cross-Entropy")
-        st.plotly_chart(fig_hist, use_container_width=True)
+        st.plotly_chart(plotly_premium(fig_hist), use_container_width=True)
+        hist_df=pd.DataFrame(hist)
+        gkey="gradient_norm" if "gradient_norm" in hist_df else ("grad_norm" if "grad_norm" in hist_df else None)
+        if gkey:
+            grad_fig=px.line(hist_df,x="epoch",y=gkey,title="Gradient norm telemetry",log_y=True)
+            st.plotly_chart(plotly_premium(grad_fig),use_container_width=True)
+
+
+
+        if st.session_state.get("experiment_history"):
+            st.markdown("### Experiment history")
+            st.dataframe(
+                pd.DataFrame(st.session_state["experiment_history"]).round(5),
+                use_container_width=True,
+                hide_index=True,
+            )
 
         # Automated Diagnostic Engine (Question 15)
         st.subheader("Autonomous Convergence Diagnosis Report")
@@ -558,6 +631,88 @@ elif app_mode == "⚡ Model Training & Diagnostics":
         st.markdown(f"**Status:** {status_color} `{diag['status']}` (Severity: `{diag['severity']}`)")
         for d in diag["diagnoses"]:
             st.write(f"- {d}")
+
+# -------------------------------------------------------------
+# 6. Optimizer Benchmark
+# -------------------------------------------------------------
+elif app_mode == "🏆 Optimizer Benchmark":
+    st.markdown(
+        """
+        <div class="hero-v2">
+            <div style="font-size:.72rem;color:#55d6ff;font-weight:850;letter-spacing:.16em;">BENCHMARK ENGINE</div>
+            <h1>Optimizer <span style="color:#55d6ff;">Arena</span></h1>
+            <p>Run the same validation protocol across gradient-based optimizers and inspect convergence behavior.</p>
+        </div>
+        """,
+        unsafe_allow_html=True,
+    )
+
+    raw_train, raw_test, raw_sample, data_source = get_uploaded_or_local_data()
+    prepared=build_feature_pipeline(raw_train,raw_test)
+    from sklearn.model_selection import train_test_split
+    X_tr,X_va,y_tr,y_va=train_test_split(
+        prepared["X_train"],prepared["y_train"],test_size=.2,random_state=42,stratify=prepared["y_train"]
+    )
+
+    b1,b2,b3=st.columns(3)
+    bench_epochs=b1.slider("Benchmark epochs",5,60,20,5)
+    bench_batch=b2.select_slider("Batch size",[32,64,128,256,512],value=128)
+    bench_lr=b3.number_input("Benchmark learning rate",0.0001,0.5,0.01,0.005,format="%.4f")
+    selected_opts=st.multiselect(
+        "Optimizers to compare",
+        [o.value for o in OptimizerType],
+        default=[OptimizerType.ADAM.value,OptimizerType.ADAMW.value,OptimizerType.RMSPROP.value,OptimizerType.MOMENTUM.value],
+    )
+
+    if st.button("🏁 Run benchmark",type="primary",use_container_width=True):
+        records=[]
+        progress=st.progress(0.0)
+        for i,name in enumerate(selected_opts,1):
+            opt=next(o for o in OptimizerType if o.value==name)
+            model=LogisticRegressionGD(
+                learning_rate=bench_lr,max_epochs=bench_epochs,batch_size=bench_batch,
+                optimizer=opt,l2_lambda=.01 if name==OptimizerType.ADAMW.value else .001
+            )
+            t0=time.perf_counter()
+            model.fit(X_tr,y_tr,X_val=X_va,y_val=y_va)
+            elapsed=time.perf_counter()-t0
+            score=evaluate_classification(y_va,model.predict_proba(X_va))
+            history=model.history
+            records.append({
+                "Optimizer":name,
+                "ROC-AUC":score["roc_auc"],
+                "PR-AUC":score["pr_auc"],
+                "F1":score["f1_score"],
+                "Final Loss":history["val_loss"][-1],
+                "Seconds":elapsed,
+            })
+            progress.progress(i/len(selected_opts))
+        bench_df=pd.DataFrame(records).sort_values("ROC-AUC",ascending=False)
+        st.session_state["benchmark_results"]=bench_df
+
+    if "benchmark_results" in st.session_state:
+        bench_df=st.session_state["benchmark_results"]
+        m1,m2,m3,m4=st.columns(4)
+        m1.metric("Runs",len(bench_df))
+        m2.metric("Best ROC-AUC",f"{bench_df['ROC-AUC'].max():.4f}")
+        m3.metric("Best PR-AUC",f"{bench_df['PR-AUC'].max():.4f}")
+        m4.metric("Fastest",f"{bench_df['Seconds'].min():.2f}s")
+
+        tab1,tab2=st.tabs(["Leaderboard","Metrics"])
+        with tab1:
+            st.dataframe(bench_df.style.format({
+                "ROC-AUC":"{:.4f}","PR-AUC":"{:.4f}","F1":"{:.4f}",
+                "Final Loss":"{:.5f}","Seconds":"{:.2f}"
+            }),use_container_width=True,hide_index=True)
+        with tab2:
+            metric_df=bench_df.melt(
+                id_vars="Optimizer",
+                value_vars=["ROC-AUC","PR-AUC","F1"],
+                var_name="Metric",value_name="Score"
+            )
+            fig=px.bar(metric_df,x="Optimizer",y="Score",color="Metric",barmode="group",
+                       title="Optimizer metric comparison")
+            st.plotly_chart(plotly_premium(fig),use_container_width=True)
 
 # -------------------------------------------------------------
 # 6. Test Predictions & Submissions
