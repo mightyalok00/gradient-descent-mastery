@@ -120,7 +120,11 @@ hr{border-color:#183149}
 
 @st.cache_data
 def get_dataset():
-    return load_and_preprocess_data(val_size=0.2, random_state=42)
+    """Load the repository dataset when available; return None on cloud deployments without CSVs."""
+    try:
+        return load_and_preprocess_data(val_size=0.2, random_state=42)
+    except FileNotFoundError:
+        return None
 
 def plotly_premium(fig: go.Figure, title: str | None = None) -> go.Figure:
     """Apply one consistent visual language to every chart."""
@@ -157,6 +161,9 @@ def get_uploaded_or_local_data():
         return train_df, test_df, sample_df, "Uploaded CSV"
 
     data = get_dataset()
+    if data is None:
+        return None, None, None, "No dataset available"
+
     return (
         data["raw_train"],
         data["raw_test"],
@@ -646,6 +653,13 @@ elif app_mode == "🔍 Formula-Based Missingness Analyzer":
 
     raw_train, raw_test, raw_sample, data_source = get_uploaded_or_local_data()
 
+    if raw_train is None:
+        st.warning(
+            "No dataset is available in this deployment. "
+            "Upload the Train CSV from the sidebar to use this workspace."
+        )
+        st.stop()
+
     tab1, tab2, tab3 = st.tabs(["📐 Mathematical Formulations", "📊 Real Dataset Analysis", "🧪 Synthetic MCAR Injection Benchmark"])
 
     analyzer = MissingDataFormulaAnalyzer(raw_train)
@@ -705,6 +719,13 @@ elif app_mode == "📊 Automated Data Profiler (EDA)":
     st.markdown("Statistical distributions, feature correlation matrices, skewness, kurtosis, and HTML report export.")
 
     df_train, _, _, data_source = get_uploaded_or_local_data()
+
+    if df_train is None:
+        st.warning(
+            "No training dataset is available. "
+            "Upload the Train CSV from the sidebar."
+        )
+        st.stop()
 
     profiler = ComprehensiveDataProfiler(df_train, dataset_name="Transaction Fraud Dataset")
     profile = profiler.profile
@@ -863,6 +884,14 @@ elif app_mode == "⚡ Model Training & Diagnostics":
     st.markdown("Train custom Gradient Descent models on the Transaction dataset and trigger automated health diagnosis.")
 
     raw_train, raw_test, raw_sample, data_source = get_uploaded_or_local_data()
+
+    if raw_train is None:
+        st.warning(
+            "No training dataset is available. "
+            "Upload the Train CSV from the sidebar."
+        )
+        st.stop()
+
     prepared = build_feature_pipeline(raw_train, raw_test)
     from sklearn.model_selection import train_test_split
     X_tr, X_va, y_tr, y_va = train_test_split(
@@ -982,6 +1011,14 @@ elif app_mode == "🏆 Optimizer Benchmark":
     )
 
     raw_train, raw_test, raw_sample, data_source = get_uploaded_or_local_data()
+
+    if raw_train is None:
+        st.warning(
+            "No training dataset is available. "
+            "Upload the Train CSV from the sidebar."
+        )
+        st.stop()
+
     prepared=build_feature_pipeline(raw_train,raw_test)
     from sklearn.model_selection import train_test_split
     X_tr,X_va,y_tr,y_va=train_test_split(
@@ -1060,6 +1097,14 @@ elif app_mode == "🚀 Test Predictions & Submissions":
     st.markdown("Generates predictions for `test.csv` in the exact format required by `sample_submission.csv`.")
 
     raw_train, raw_test, raw_sample, data_source = get_uploaded_or_local_data()
+
+    if raw_train is None or raw_test is None:
+        st.warning(
+            "Train and Test CSVs are required for prediction generation. "
+            "Upload both files from the sidebar."
+        )
+        st.stop()
+
     prepared = build_feature_pipeline(raw_train, raw_test)
     X_test = prepared["X_test"]
     X_train = prepared["X_train"]
